@@ -1,7 +1,3 @@
--- ============================================
--- 实验一数据库初始化脚本
--- 修复点：老师原稿最后一条 INSERT 以逗号结尾，会报语法错误
--- ============================================
 CREATE DATABASE IF NOT EXISTS mybatis_db DEFAULT CHARACTER SET utf8mb4;
 USE mybatis_db;
 

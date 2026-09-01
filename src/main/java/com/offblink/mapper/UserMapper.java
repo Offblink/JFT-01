@@ -10,16 +10,21 @@ import java.util.List;
  */
 public interface UserMapper {
 
-    /**
-     * 查询所有用户
-     */
+    /** 查询所有用户 */
     List<User> findAll();
 
-    /**
-     * 根据 ID 查询用户
-     *
-     * @param id 用户ID
-     * @return 用户对象
-     */
+    /** 根据 ID 查询用户 */
     User findById(Integer id);
+
+    /** 用户名模糊查询 */
+    List<User> findByUsernameLike(String keyword);
+
+    /** 添加用户（自增主键回填到 user.id） */
+    int addUser(User user);
+
+    /** 更新用户 */
+    int updateUser(User user);
+
+    /** 删除用户 */
+    int deleteUser(Integer id);
 }

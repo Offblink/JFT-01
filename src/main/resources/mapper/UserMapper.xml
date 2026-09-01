@@ -18,4 +18,32 @@
         WHERE id = #{id}
     </select>
 
+    <!-- 用户名模糊查询：#{} 预编译占位，CONCAT 拼通配符，防 SQL 注入 -->
+    <select id="findByUsernameLike" parameterType="string" resultType="User">
+        SELECT id, username, password, email, created_at, updated_at
+        FROM user
+        WHERE username LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+    <!-- 添加用户：自增主键回填；created_at/updated_at 交由数据库默认值维护 -->
+    <insert id="addUser" parameterType="User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (username, password, email)
+        VALUES (#{username}, #{password}, #{email})
+    </insert>
+
+    <!-- 更新用户：不更新 created_at；updated_at 由数据库 ON UPDATE 自动维护 -->
+    <update id="updateUser" parameterType="User">
+        UPDATE user
+        SET username = #{username},
+            password = #{password},
+            email    = #{email}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="deleteUser" parameterType="int">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
 </mapper>
