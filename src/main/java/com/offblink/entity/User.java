@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 /**
  * 用户实体类
- * 对应数据库表：user（mybatis_db 库）
+ * 对应数据库表：user
  * created_at / updated_at 依赖 mapUnderscoreToCamelCase 自动映射为 createdAt / updatedAt
  */
 public class User {

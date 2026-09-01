@@ -5,9 +5,9 @@ import com.offblink.entity.User;
 import java.util.List;
 
 /**
- * 用户 Mapper 接口
- * 对应映射文件：resources/mapper/UserMapper.xml（namespace 必须与本接口全限定名一致）
+ * 用户 Mapper 接口，映射 resources/mapper/UserMapper.xml
  */
+
 public interface UserMapper {
 
     /** 查询所有用户 */

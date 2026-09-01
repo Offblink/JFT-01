@@ -17,7 +17,6 @@
     </properties>
 
     <dependencies>
-        <!-- JavaEE Web（老师要求创建 web 应用） -->
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
