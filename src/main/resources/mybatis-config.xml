@@ -10,9 +10,8 @@
 
     <!-- 全局设置 -->
     <settings>
-        <!-- SQL 日志走 Log4j -->
-        <setting name="logImpl" value="LOG4J"/>
-        <!-- 驼峰命名自动映射：created_at -> createdAt -->
+        <!-- SQL 日志走 SLF4J 门面（实际由 Logback 实现） -->
+        <setting name="logImpl" value="SLF4J"/>
         <setting name="mapUnderscoreToCamelCase" value="true"/>
     </settings>
 
