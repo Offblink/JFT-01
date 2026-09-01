@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- namespace 必须与 Mapper 接口的全限定名完全一致 -->
+<mapper namespace="com.offblink.mapper.UserMapper">
+
+    <!-- 查询所有用户 -->
+    <select id="findAll" resultType="User">
+        SELECT id, username, password, email, created_at, updated_at
+        FROM user
+    </select>
+
+    <!-- 根据 ID 查询用户 -->
+    <select id="findById" parameterType="int" resultType="User">
+        SELECT id, username, password, email, created_at, updated_at
+        FROM user
+        WHERE id = #{id}
+    </select>
+
+</mapper>
