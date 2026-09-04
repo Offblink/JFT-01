@@ -23,8 +23,7 @@
     <select id="findByUsernameLike" parameterType="string" resultType="User">
         SELECT id, username, password, email, created_at, updated_at
         FROM user
-
-        -- #{}代替？
+        -- keyword 参数在此处被替换为 JDBC 预编译占位符（见运行日志的 Preparing/Parameters 行）
         WHERE username LIKE CONCAT('%', #{keyword}, '%')
     </select>
 
