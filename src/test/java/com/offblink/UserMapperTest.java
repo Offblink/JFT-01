@@ -14,14 +14,16 @@ import java.util.List;
 
 /**
  * MyBatis CRUD 测试
- * 要点：@Before 复用 SqlSessionFactory；查询不需要 commit，增删改必须 commit
+ * 对每个方法和生命周期进行测试
  */
 public class UserMapperTest {
 
     private SqlSessionFactory sqlSessionFactory;
 
+    // 首先执行init方法初始化
     @Before
     public void init() throws Exception {
+        // 首先读入主配置文件
         InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
         sqlSessionFactory = new SqlSessionFactoryBuilder().build(is);
     }
@@ -38,11 +40,16 @@ public class UserMapperTest {
         }
     }
 
+    // 以此方法为例
     @Test
     public void testFindByUsernameLike() {
         System.out.println("========== 测试用户名模糊查询 ==========");
         try (SqlSession session = sqlSessionFactory.openSession()) {
+
+            // 运行时造类（代理）
             UserMapper mapper = session.getMapper(UserMapper.class);
+
+            // 将UserMapper对象调用方法的结果，赋给用户列表变量，并逐一输出
             List<User> users = mapper.findByUsernameLike("zhang");
             for (User user : users) {
                 System.out.println(user);
