@@ -11,6 +11,8 @@ import org.junit.Test;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * MyBatis CRUD 测试
@@ -57,6 +59,54 @@ public class UserMapperTest {
         }
     }
 
+    // Map 多参数示例：一个 Map 装多个变量，键名必须与 XML 里 #{} 占位名一致
+    @Test
+    public void testFindPage() {
+        System.out.println("========== 测试 Map 多参数分页查询 ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper mapper = session.getMapper(UserMapper.class);
+
+            // 多个变量装进 Map：key 是字符串"变量名"，value 是值
+            Map<String, Object> params = new HashMap<>();
+            params.put("offset", 0);   // 从第几条开始（对应 XML 的 #{offset}）
+            params.put("size", 3);     // 取几条（对应 XML 的 #{size}）
+
+            List<User> users = mapper.findByPage(params);
+            for (User user : users) {
+                System.out.println(user);
+            }
+        }
+    }
+
+    // 聚合函数示例：COUNT(*) 返回单行单列的数字，代理方法返回 Integer，自动拆箱成 int
+    @Test
+    public void testFindCount() {
+        System.out.println("========== 测试聚合函数 COUNT ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper mapper = session.getMapper(UserMapper.class);
+
+            int count = mapper.findCount();  // Integer 自动拆箱成 int
+            System.out.println("用户总数：" + count);
+        }
+    }
+    // 多聚合示例：一行多列数字，resultType="map" 接成 HashMap，key 就是 SQL 里的列别名
+    @Test
+    public void testFindStats() {
+        System.out.println("========== 测试多聚合函数（一行多列） ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper mapper = session.getMapper(UserMapper.class);
+
+            // 整行统计结果是一个 Map：{cnt=..., totalId=..., maxId=...}
+            Map<String, Object> stats = mapper.findStats();
+            System.out.println("统计结果：" + stats);
+
+            // 也可按别名单独取。注意：JDBC 类型映射 COUNT→Long、SUM→BigDecimal，不是 Integer
+            System.out.println("用户总数 = " + stats.get("cnt") + "，id 之和 = " + stats.get("totalId"));
+        }
+    }
+
+
+
     @Test
     public void testCrudLifecycle() {
         System.out.println("========== 测试增改查删完整生命周期 ==========");
@@ -65,9 +115,13 @@ public class UserMapperTest {
 
             // 1. 增：自增主键回填
             User user = new User();
+
+            // 这就调用了user的本方法
             user.setUsername("测试用户");
             user.setPassword("123456");
             user.setEmail("test@qq.com");
+
+            // 传入user对象，mapper.xml中括弧内不可乱写
             int rows = mapper.addUser(user);
             System.out.println("新增影响行数：" + rows + "，回填主键 id = " + user.getId());
 

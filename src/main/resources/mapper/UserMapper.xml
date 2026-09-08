@@ -7,6 +7,7 @@
 <mapper namespace="com.offblink.mapper.UserMapper">
 
     <!-- 查询所有用户 -->
+    <!--从这行开始User表的映射就起效了-->
     <select id="findAll" resultType="User">
         SELECT id, username, password, email, created_at, updated_at
         FROM user
@@ -16,6 +17,7 @@
     <select id="findById" parameterType="int" resultType="User">
         SELECT id, username, password, email, created_at, updated_at
         FROM user
+        -- 一个变量时，括弧里面的内容随便写，赋什么就是什么
         WHERE id = #{id}
     </select>
 
@@ -25,6 +27,28 @@
         FROM user
         -- keyword 参数在此处被替换为 JDBC 预编译占位符（见运行日志的 Preparing/Parameters 行）
         WHERE username LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+    <!-- 分页查询：Map 传多个参数；键名（offset/size）即 #{} 占位名，拼错编译不报错、运行时才暴露 -->
+    <select id="findByPage" parameterType="map" resultType="User">
+        SELECT id, username, password, email, created_at, updated_at
+        FROM user
+        ORDER BY id
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 聚合函数：COUNT(*) 单行单列，resultType 必须是数字包装类而非实体；SUM/MAX/MIN/AVG 同理 -->
+    <select id="findCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM user
+    </select>
+
+    <!-- 多聚合函数：一行多列，resultType="map"（内置别名）把每列变成 Map 的一个键值对，key=列别名
+         ——即老师 findCountAndSum 注释版的修正：多列聚合用 ArrayList 接不住，要用 Map 或 DTO -->
+    <select id="findStats" resultType="map">
+        SELECT COUNT(*) AS cnt,
+               SUM(id)  AS totalId,
+               MAX(id)  AS maxId
+        FROM user
     </select>
 
     <!-- 添加用户：自增主键回填；created_at/updated_at 交由数据库默认值维护 -->
