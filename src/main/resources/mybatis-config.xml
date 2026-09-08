@@ -37,6 +37,10 @@
     <mappers>
         <mapper resource="mapper/UserMapper.xml"/>
         <mapper class="com.offblink.mapper.UserMapperAnnotation"/>
+        <!-- 课件方式2：批量注册 <package name="com.offblink.mapper"/>，一次扫包注册全部接口。
+             本项目不能用：它要求每个接口的 XML 与接口同包同名（即 com/offblink/mapper/UserMapper.xml），
+             而本项目的 XML 在 resources/mapper/ 下，路径不匹配会让 XML 版 UserMapper 绑定失败
+             （运行时报 Invalid bound statement）。混合布局下各注册各的才是稳解 -->
     </mappers>
 
 </configuration>
