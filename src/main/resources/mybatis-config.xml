@@ -33,9 +33,10 @@
         </environment>
     </environments>
 
-    <!-- 注册 Mapper 映射文件 -->
+    <!-- 注册 Mapper：XML 方式用 resource；注解方式用 class，可共存 -->
     <mappers>
         <mapper resource="mapper/UserMapper.xml"/>
+        <mapper class="com.offblink.mapper.UserMapperAnnotation"/>
     </mappers>
 
 </configuration>
