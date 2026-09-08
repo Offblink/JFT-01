@@ -24,11 +24,19 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- MyBatis -->
+        <!-- MyBatis-Plus（内置 MyBatis 核心 3.5.10，原 mybatis 3.5.13 依赖移除避免冲突） -->
         <dependency>
-            <groupId>org.mybatis</groupId>
-            <artifactId>mybatis</artifactId>
-            <version>3.5.13</version>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus</artifactId>
+            <version>3.5.3.1</version>
+        </dependency>
+
+        <!-- MP 的 MybatisSqlSessionFactoryBuilder 非法引用 Spring 的 GenericTypeResolver，
+             非 Spring 环境必须补 spring-core（版本与实验二 SSM 对齐） -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>5.3.31</version>
         </dependency>
 
         <!-- MySQL 驱动 -->
