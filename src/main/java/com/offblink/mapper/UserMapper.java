@@ -1,6 +1,7 @@
 package com.offblink.mapper;
 
 import com.offblink.entity.User;
+import com.offblink.entity.Vo;
 
 import java.util.List;
 import java.util.Map;
@@ -37,4 +38,15 @@ public interface UserMapper {
 
     /** 删除用户 */
     int deleteUser(Integer id);
+
+    // ==================== 第 4 节：resultType 与 resultMap 对照 ====================
+
+    /** ① 列别名演示：SQL 把 id 起了别名 uid，与 User 的属性名对不上 → 自动映射丢字段（id = null） */
+    List<User> findAllWithColumnAlias();
+
+    /** ② resultType + VO：靠列别名（p1/p2/p3）对上 VO 属性名才能装得进，别名即契约 */
+    List<Vo> findAllByVoWithResultType();
+
+    /** ③ resultMap + VO：列名原样写，映射规则写在 XML 的 userVoMap 里（与 ② 同一份数据、两种写法） */
+    List<Vo> findAllByVoMap();
 }

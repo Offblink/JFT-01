@@ -20,6 +20,10 @@
 - 用户表完整 CRUD：`findAll` / `findById` / `addUser`（自增主键回填）/ `updateUser` / `deleteUser`
 - 用户名模糊查询 `findByUsernameLike`（`LIKE CONCAT('%', #{keyword}, '%')` 预编译防注入）
 - 生命周期测试：以回填的主键 id 贯穿增→改→查→删，无顺序依赖，跑完自清理
+- 结果映射（第 4 节）：
+  - XML 侧三连对照——① `findAllWithColumnAlias`（别名 `uid` 对不上属性名 `id`，resultType 丢字段）、
+    ② `findAllByVoWithResultType`（别名即契约，靠 `p1/p2/p3` 对上 VO）、③ `findAllByVoMap`（`resultMap` 集中声明映射规则）
+  - 注解侧两式——`@Results` 匿名映射成 VO；`@Results(id="annoUserMap")` 命名后由 `@ResultMap("annoUserMap")` 复用
 
 ## 快速开始
 
@@ -42,6 +46,7 @@ mvn test -Dtest=UserMapperTest
 ├── sql/user_db.sql                     # 建库建表 + 测试数据
 ├── src/main/java/com/offblink/
 │   ├── entity/User.java                # 实体类（驼峰映射 created_at → createdAt）
+│   ├── entity/Vo.java                  # 查询结果 VO（第 4 节：resultMap 对接「任意模型」的演示）
 │   └── mapper/UserMapper.java          # Mapper 接口（动态代理）
 ├── src/main/resources/
 │   ├── db.properties                   # 连接配置（占位）

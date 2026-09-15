@@ -1,6 +1,7 @@
 package com.offblink;
 
 import com.offblink.entity.User;
+import com.offblink.entity.Vo;
 import com.offblink.mapper.UserMapperAnnotation;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
@@ -118,6 +119,49 @@ public class UserMapperAnnotationTest {
             // 表名无法用 ? 参数化，只能拼接；值必须来自代码白名单
             List<User> users = mapper.findAllByTableName("user");
             System.out.println("动态表名查询命中 " + users.size() + " 条");
+        }
+    }
+
+    // ==================== 第 4 节：注解版 resultMap（@Results / @ResultMap） ====================
+
+    // 注解方式 1：@Results 直接贴在方法上（匿名 ResultMap），只对本方法生效；
+    // @Result(property, column, id = true) 里的 id = true 等价 XML 的 <id> 主键映射。
+    @Test
+    public void testFindAllVoByAnnoMap() {
+        System.out.println("========== 注解方式1：@Results 匿名映射成 VO ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapperAnnotation mapper = session.getMapper(UserMapperAnnotation.class);
+
+            List<Vo> list = mapper.findAllVoByAnnoMap();
+            System.out.println("命中 " + list.size() + " 条");
+            for (Vo vo : list) {
+                System.out.println(vo);
+            }
+        }
+    }
+
+    // 注解方式 2：@Results 带 id 命名后，其他方法用 @ResultMap 引用同一套映射
+    @Test
+    public void testFindByIdWithAnnoMap() {
+        System.out.println("========== 注解方式2：命名 ResultMap（annoUserMap） ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapperAnnotation mapper = session.getMapper(UserMapperAnnotation.class);
+
+            // 映射到 User：created_at → createdAt、updated_at → updatedAt 也由 @Result 显式声明
+            User user = mapper.findByIdWithAnnoMap(1);
+            System.out.println("findByIdWithAnnoMap(1) = " + user);
+        }
+    }
+
+    // @ResultMap("annoUserMap") 复用上面那套映射，不用再抄一遍 @Result
+    @Test
+    public void testFindAllWithAnnoMap() {
+        System.out.println("========== @ResultMap 复用命名映射 ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapperAnnotation mapper = session.getMapper(UserMapperAnnotation.class);
+
+            List<User> users = mapper.findAllWithAnnoMap();
+            System.out.println("命中 " + users.size() + " 条，第一条 = " + users.get(0));
         }
     }
 }

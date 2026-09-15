@@ -1,6 +1,7 @@
 package com.offblink;
 
 import com.offblink.entity.User;
+import com.offblink.entity.Vo;
 import com.offblink.mapper.UserMapper;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
@@ -106,6 +107,56 @@ public class UserMapperTest {
     }
 
 
+
+    // ==================== 第 4 节：resultType 的非属性字段 vs resultMap ====================
+
+    // ① resultType 自动映射的前提是「列名或别名 = 属性名」。
+    //    这里 SQL 把 id 起了别名 uid，User 里没有 uid 属性 → 这列没人接手，查询结果 id 全为 null。
+    @Test
+    public void testFindAllWithColumnAlias() {
+        System.out.println("========== ① resultType：列别名 uid 对不上属性名 id ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper mapper = session.getMapper(UserMapper.class);
+
+            List<User> users = mapper.findAllWithColumnAlias();
+            System.out.println("命中 " + users.size() + " 条，第一条：" + users.get(0));
+            System.out.println("id = " + users.get(0).getId()
+                    + (users.get(0).getId() == null
+                       ? "  ← 已丢字段（别名 uid 在 User 里找不到同名属性），resultType 只认名字对不对得上"
+                       : "  ← 意外：竟然映射上了"));
+        }
+    }
+
+    // ② 同一份数据、同样的思路，改用 VO：把别名起成 VO 的属性名 p1/p2/p3，自动映射就能对上
+    @Test
+    public void testFindAllByVoWithResultType() {
+        System.out.println("========== ② resultType + VO：靠列别名对上属性名 ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper mapper = session.getMapper(UserMapper.class);
+
+            List<Vo> list = mapper.findAllByVoWithResultType();
+            System.out.println("命中 " + list.size() + " 条");
+            for (Vo vo : list) {
+                System.out.println(vo);
+            }
+        }
+    }
+
+    // ③ 还是 VO，但换成 resultMap：SQL 里列名原样写（SELECT *），映射关系写在 XML 的 userVoMap 里
+    @Test
+    public void testFindAllByVoMap() {
+        System.out.println("========== ③ resultMap + VO：映射规则写在 resultMap 里 ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapper mapper = session.getMapper(UserMapper.class);
+
+            List<Vo> list = mapper.findAllByVoMap();
+            System.out.println("命中 " + list.size() + " 条");
+            for (Vo vo : list) {
+                System.out.println(vo);
+            }
+            System.out.println("（与 ② 的结果一致：同一个 VO，一个靠别名、一个靠 resultMap）");
+        }
+    }
 
     @Test
     public void testCrudLifecycle() {

@@ -1,10 +1,14 @@
 package com.offblink.mapper;
 
 import com.offblink.entity.User;
+import com.offblink.entity.Vo;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.ResultMap;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -65,4 +69,40 @@ public interface UserMapperAnnotation {
     @Select("SELECT id, username, password, email, created_at, updated_at FROM user "
             + "WHERE username = #{username} AND password = #{password}")
     User loginSafe(@Param("username") String username, @Param("password") String password);
+
+    // ==================== 第 4 节：注解版 resultMap（@Results / @ResultMap） ====================
+
+    /**
+     * 注解方式 1：@Results 直接贴在方法上，是一个「匿名 ResultMap」，只对本方法生效。
+     * @Result(property = 属性名, column = 列名, id = true) —— id = true 等价 XML 的 &lt;id&gt;，声明主键；
+     * 不写 id = true 的就是普通字段，等价 XML 的 &lt;result&gt;。
+     * 这里映射成 VO，效果和 XML 的 findAllByVoMap（userVoMap）完全一致。
+     */
+    @Select("SELECT id, username, password FROM user")
+    @Results({
+            @Result(property = "p1", column = "id", id = true),
+            @Result(property = "p2", column = "username"),
+            @Result(property = "p3", column = "password")
+    })
+    List<Vo> findAllVoByAnnoMap();
+
+    /**
+     * 注解方式 2：@Results 带上 id（命名 ResultMap），供其他查询用 @ResultMap 重复引用 ——
+     * 适合多个方法共用同一套映射，改一处、其他方法跟着生效（比每个方法抄一遍 @Results 可靠）。
+     */
+    @Select("SELECT id, username, password, email, created_at, updated_at FROM user WHERE id = #{id}")
+    @Results(id = "annoUserMap", value = {
+            @Result(property = "id", column = "id", id = true),
+            @Result(property = "username", column = "username"),
+            @Result(property = "password", column = "password"),
+            @Result(property = "email", column = "email"),
+            @Result(property = "createdAt", column = "created_at"),
+            @Result(property = "updatedAt", column = "updated_at")
+    })
+    User findByIdWithAnnoMap(Integer id);
+
+    /** @ResultMap 引用上面命名的 annoUserMap：不用再抄一遍那串 @Result */
+    @Select("SELECT id, username, password, email, created_at, updated_at FROM user ORDER BY id")
+    @ResultMap("annoUserMap")
+    List<User> findAllWithAnnoMap();
 }
