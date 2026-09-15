@@ -167,4 +167,37 @@ public class EmpMapperTest {
 
         session.commit();
     }
+
+    @Test
+    public void testSelectByPosts() {
+        System.out.println("========== Emp：foreach IN 按岗位批量查询（经理 / 销售员） ==========");
+        // 种子数据只有 Java工程师/前端工程师/市场专员/人事专员这四个岗位，
+        // 本用例自造「经理」「销售员」各一条，外加一条 Java工程师 当对照，跑完全删（不污染种子表）
+        Emp manager = newEmp("IN演练经理", "男", "销售部", "经理", "15000");
+        Emp salesman = newEmp("IN演练销售", "女", "销售部", "销售员", "6500");
+        Emp other = newEmp("IN演练工程师", "男", "研发部", "Java工程师", "12000");
+        assertEquals(3, mapper.insertBatch(Arrays.asList(manager, salesman, other)));
+
+        // 集合里有几个岗位就摊出几个占位符：WHERE post IN (?, ?)
+        List<Emp> hits = mapper.selectByPosts(Arrays.asList("经理", "销售员"));
+        System.out.println("IN (经理, 销售员) 命中 " + hits.size() + " 条：");
+        for (Emp e : hits) {
+            System.out.println(e);
+        }
+        assertEquals(2, hits.size());
+        assertEquals("经理", hits.get(0).getPost());
+        assertEquals("销售员", hits.get(1).getPost());
+
+        // 集合只放一个岗位同样成立（占位符变成一个）
+        List<Emp> onlySalesman = mapper.selectByPosts(Arrays.asList("销售员"));
+        System.out.println("IN (销售员) 命中 " + onlySalesman.size() + " 条");
+        assertEquals(1, onlySalesman.size());
+
+        // 清场
+        List<Integer> ids = Arrays.asList(manager.getEmpId(), salesman.getEmpId(), other.getEmpId());
+        assertEquals(3, mapper.deleteBatch(ids));
+        assertEquals(4, mapper.selectAll().size());
+
+        session.commit();
+    }
 }

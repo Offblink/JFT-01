@@ -46,4 +46,7 @@ public interface EmpMapper extends BaseMapper<Emp> {
 
     /** 分支选择（choose / when / otherwise）：有姓名按姓名，否则有部门按部门，否则查全部 */
     List<Emp> selectByChoice(@Param("empName") String empName, @Param("dept") String dept);
+
+    /** 按岗位集合批量查询（foreach IN）：一次查出「经理」和「销售员」这类多岗位需求 */
+    List<Emp> selectByPosts(@Param("posts") List<String> posts);
 }
