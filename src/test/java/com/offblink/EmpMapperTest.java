@@ -15,6 +15,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * EmpMapper XML 版测试（指导书任务 2 + 任务 3 动态 SQL）
@@ -196,6 +197,61 @@ public class EmpMapperTest {
         // 清场
         List<Integer> ids = Arrays.asList(manager.getEmpId(), salesman.getEmpId(), other.getEmpId());
         assertEquals(3, mapper.deleteBatch(ids));
+        assertEquals(4, mapper.selectAll().size());
+
+        session.commit();
+    }
+
+    @Test
+    public void testUpdateBatch() {
+        System.out.println("========== Emp：foreach 一次性批量更新（分号拼多条 UPDATE） ==========");
+        Emp a = newEmp("批改甲", "男", "市场部", "专员", "6000");
+        Emp b = newEmp("批改乙", "女", "市场部", "专员", "6100");
+        Emp c = newEmp("批改丙", "男", "售后部", "专员", "6200");
+        assertEquals(3, mapper.insertBatch(Arrays.asList(a, b, c)));
+
+        // 每个元素带自己的 id 和自己的新值：一次调用下发三条互不相同的 UPDATE
+        Emp pa = new Emp();
+        pa.setEmpId(a.getEmpId());
+        pa.setPost("高级专员");
+        pa.setSalary(new BigDecimal("7000"));
+        Emp pb = new Emp();
+        pb.setEmpId(b.getEmpId());
+        pb.setDept("华东区");
+        pb.setStatus(0);
+        Emp pc = new Emp();
+        pc.setEmpId(c.getEmpId());
+        pc.setEmpName("批改丙改");
+
+        int rows = mapper.updateBatch(Arrays.asList(pa, pb, pc));
+        System.out.println("批量更新返回值：" + rows);
+        // 多语句下发时驱动只回报第一条语句的影响行数（三条各改一行 → 1，不是 3），
+        // 所以返回值只能当"有没有执行"的粗略信号，真正的判据是下面的回查
+        assertTrue(rows >= 1);
+
+        // 逐条回查：各自的改动都生效，且没互相串味（自己没传的字段保持原值）
+        Emp afterA = mapper.selectEmpById(a.getEmpId());
+        Emp afterB = mapper.selectEmpById(b.getEmpId());
+        Emp afterC = mapper.selectEmpById(c.getEmpId());
+        System.out.println("甲：" + afterA);
+        System.out.println("乙：" + afterB);
+        System.out.println("丙：" + afterC);
+
+        assertEquals("高级专员", afterA.getPost());
+        assertEquals(0, afterA.getSalary().compareTo(new BigDecimal("7000")));
+        assertEquals("市场部", afterA.getDept());       // 甲没传 dept → 原值不动
+        assertEquals("批改甲", afterA.getEmpName());     // 甲没传姓名 → 原值不动
+
+        assertEquals("华东区", afterB.getDept());
+        assertEquals(Integer.valueOf(0), afterB.getStatus());
+        assertEquals("批改乙", afterB.getEmpName());     // 乙没传姓名 → 原值不动
+
+        assertEquals("批改丙改", afterC.getEmpName());
+        assertEquals("售后部", afterC.getDept());
+        assertEquals("专员", afterC.getPost());          // 丙没传岗位 → 原值不动
+
+        // 清场
+        assertEquals(3, mapper.deleteBatch(Arrays.asList(a.getEmpId(), b.getEmpId(), c.getEmpId())));
         assertEquals(4, mapper.selectAll().size());
 
         session.commit();

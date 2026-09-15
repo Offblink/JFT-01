@@ -139,4 +139,32 @@
         ORDER BY emp_id
     </select>
 
+    <!--
+        foreach 一次性批量更新：集合里每个元素 = 一条独立的 UPDATE 动作，
+        用 separator=";" 把它们拼成「UPDATE ...; UPDATE ...;」一条语句交给数据库，
+        取代「循环调 N 次 updateDynamic」的 N 次网络往返。
+        每条 UPDATE 内部再套 <set>，所以每个元素都能只改自己带的字段（没传的保持原值）。
+
+        硬要求：JDBC URL 必须带 allowMultiQueries=true（db.properties 已加）。
+        这是驱动的默认安全开关，不开的话驱动在解析阶段就报语法错误，跟 SQL 本身无关。
+
+        限制（实测）：多语句下发时，MySQL Connector/J 的 executeUpdate 只回报【第一条】语句的
+        影响行数（本例三条各改一行 → 返回 1，不是 3），所以拿返回值判断"改了几行"是不可靠的，
+        要确认结果得回查。一次发多条也意味着这里不能用 useGeneratedKeys。
+        与 updateDynamic 同样的坑：某个元素的待改字段全为 null 时 <set> 会退化成空串，那条语句非法。
+    -->
+    <update id="updateBatch">
+        <foreach collection="list" item="e" separator=";">
+            UPDATE ssm_emp.emp
+            <set>
+                <if test="e.empName != null">emp_name = #{e.empName},</if>
+                <if test="e.dept != null">dept = #{e.dept},</if>
+                <if test="e.post != null">post = #{e.post},</if>
+                <if test="e.salary != null">salary = #{e.salary},</if>
+                <if test="e.status != null">status = #{e.status},</if>
+            </set>
+            WHERE emp_id = #{e.empId}
+        </foreach>
+    </update>
+
 </mapper>

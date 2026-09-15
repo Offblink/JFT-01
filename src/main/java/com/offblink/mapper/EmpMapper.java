@@ -49,4 +49,12 @@ public interface EmpMapper extends BaseMapper<Emp> {
 
     /** 按岗位集合批量查询（foreach IN）：一次查出「经理」和「销售员」这类多岗位需求 */
     List<Emp> selectByPosts(@Param("posts") List<String> posts);
+
+    /**
+     * 一次性批量更新（foreach + separator=";"）：集合里每个元素 = 一条独立 UPDATE，
+     * 每个元素只改自己带了值的字段。
+     * 前置条件：JDBC URL 需带 allowMultiQueries=true（见 db.properties 与 XML 注释）。
+     * 返回值不可靠：多语句下发时驱动只回报第一条语句的影响行数（实测），判断结果要回查。
+     */
+    int updateBatch(@Param("list") List<Emp> emps);
 }

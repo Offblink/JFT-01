@@ -43,6 +43,9 @@ mvn test -Dtest=UserMapperTest
 ```
 
 > `db.properties` 仓库内为占位配置，本地实际配置不提交（skip-worktree），请勿将真实口令提交到仓库。
+>
+> 其中 JDBC URL 需要 `allowMultiQueries=true`（批量更新 `updateBatch` 用 `<foreach>` 分号拼多条 UPDATE，
+> 不开这个开关驱动会直接报语法错误）；`allowPublicKeyRetrieval=true` 是 MySQL 8/9 在 `useSSL=false` 下必须的。
 
 ## 项目结构
 
