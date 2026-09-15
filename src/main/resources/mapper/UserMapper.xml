@@ -153,6 +153,8 @@
                              第一个条件带着 AND/OR 时，把开头那个多余的去掉。
     -->
     <select id="findUsersByCondition" parameterType="User" resultMap="userResultMap">
+        <!-- 这里的 include 引入了上面的 sql 片段（老师没讲）。注意：这类说明必须写成 XML 注释，
+             写成裸的双横线文本会被当成 SQL 的一部分原样发给 MySQL -->
         SELECT <include refid="userColumns"/> FROM user
         <where>
             <if test="username != null and username != ''">
@@ -202,6 +204,8 @@
                 <when test="email != null and email != ''">
                     email = #{email}
                 </when>
+                <!-- where 1 = 1，意即如果都不满足，毕竟生活还得过（这条注释原本写成裸的双横线文本
+                     放进 <choose>，而 XML 规定 choose 的子元素只能是 when*/otherwise，构建直接失败） -->
                 <otherwise>
                     1 = 1
                 </otherwise>
