@@ -10,11 +10,11 @@ import java.util.Date;
 
 /**
  * 员工实体类（实验一指导书任务 2.2 / 4.2）
- * 对应数据库表：ssm_emp.emp
+ * 对应数据库表：ssm_emp.employer（老师要求的表名，早期版本为 emp）
  * 注意：指导书原稿在 status 上加了 @TableLogic——status 是业务字段（1在职 0离职），
  * 照抄会把离职员工在 MP 查询里过滤"消失"，故不加（正确做法是独立 deleted 字段）
  */
-@TableName("ssm_emp.emp")
+@TableName("ssm_emp.employer")
 public class Emp {
     @TableId(value = "emp_id", type = IdType.AUTO)
     private Integer empId;
