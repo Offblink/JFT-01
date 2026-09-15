@@ -112,4 +112,161 @@
         SELECT * FROM user
     </select>
 
+    <!-- ==================== 第 4-2 节：动态 SQL（6 种标签 + sql 片段复用） ==================== -->
+
+    <!--
+        动态 SQL 的核心：SQL 在运行期按参数值「拼」出来，而不是为每种条件组合各写一个 select。
+        同一个 <select> 要应付「有哪个条件查哪个」，全靠下面这些标签。
+
+        顺带补上第 4-1 节缺的 XML 版 ResultMap：本文件的动态查询统一用它接结果，
+        注解接口再用 @ResultMap("userResultMap") 跨方式引用它（注解写 SQL、XML 定映射）。
+        有驼峰映射加持时这些映射本可自动完成，显式写出来是为了看清「列 → 属性」的完整对应，
+        也给跨方式复用一个明确的落点。
+    -->
+    <resultMap id="userResultMap" type="User">
+        <id     property="id"        column="id"/>
+        <result property="username"  column="username"/>
+        <result property="password"  column="password"/>
+        <result property="email"     column="email"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- <sql> 定义可复用的片段：列清单。片段里也能写动态标签，被 <include> 插入后会继续解析 -->
+    <sql id="userColumns">
+        id, username, password, email, created_at, updated_at
+    </sql>
+
+    <!-- 可复用的条件片段：两个 <if> 各自判断，谁有值谁参与拼装；只维护这一份 -->
+    <sql id="commonCondition">
+        <if test="username != null and username != ''">
+            AND username LIKE CONCAT('%', #{username}, '%')
+        </if>
+        <if test="email != null and email != ''">
+            AND email = #{email}
+        </if>
+    </sql>
+
+    <!--
+        1. <if> + <where>：多条件任意组合
+           <where> 干两件事：一个条件都没有时连 WHERE 一起省掉（否则拼出 "FROM user WHERE" 直接语法错误）；
+                             第一个条件带着 AND/OR 时，把开头那个多余的去掉。
+    -->
+    <select id="findUsersByCondition" parameterType="User" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/> FROM user
+        <where>
+            <if test="username != null and username != ''">
+                AND username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+        </where>
+    </select>
+
+    <!--
+        2. <set>：动态更新（<where> 的镜像）
+           自动补 SET 关键字、自动去掉末尾多余的逗号，只更新传了值的字段——不会把 null 写回库。
+           注意：一个字段都不传时 <set> 被省成空串，拼出 "UPDATE user WHERE id = ？" 会语法错误，
+           所以调用方至少要传一个待改字段。
+    -->
+    <update id="updateUserSelective" parameterType="User">
+        UPDATE user
+        <set>
+            <if test="username != null">username = #{username},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="updatedAt != null">updated_at = #{updatedAt},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!--
+        3. <choose>/<when>/<otherwise>：互斥分支，相当于 Java 的 if / else if / else
+           只命中第一个成立的 <when>，后面全部跳过；都不成立才走 <otherwise> 兜底。
+           场景：多个条件有优先级，只取最优先的那一个。
+    -->
+    <select id="findUserPriority" parameterType="User" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/> FROM user
+        <where>
+            <choose>
+                <when test="id != null">
+                    id = #{id}
+                </when>
+                <when test="username != null and username != ''">
+                    username LIKE CONCAT('%', #{username}, '%')
+                </when>
+                <when test="email != null and email != ''">
+                    email = #{email}
+                </when>
+                <otherwise>
+                    1 = 1
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+
+    <!--
+        4. <foreach>：批量查询（IN 条件）
+             collection="ids"      : 对应接口参数 @Param("ids")
+             item="id"             : 遍历元素的变量名，下面按它取值
+             open / separator / close : 开头、分隔符、结尾 —— 拼出来就是 IN (1, 2, 3)
+           IN 括号里元素个数不定，没法用单个 ? 占位，只能靠 <foreach> 拼。
+    -->
+    <select id="findByIds" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/> FROM user
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!--
+        5. <foreach>：批量插入
+           collection="list"：参数是 List 时默认名就是 list（数组是 array，Map 用 map 的键）
+           item="u" 是遍历出的单个 User，取值要写成 u.username（对比上面的单值写法）
+           一条 INSERT 拼出多组 VALUES：省掉 N-1 次网络往返。
+           时间列不传，交给数据库默认值维护，与 addUser 保持一致。
+    -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO user (username, password, email)
+        VALUES
+        <foreach collection="list" item="u" separator=",">
+            (#{u.username}, #{u.password}, #{u.email})
+        </foreach>
+    </insert>
+
+    <!--
+        6. <trim>：自定义裁剪，<where> / <set> 本质上就是它的两种固定写法
+             prefix="WHERE"             : 有内容时才补上这个前缀
+             prefixOverrides="AND |OR " : 去掉开头多余的 AND 或 OR（竖线两侧的空格是语法的一部分）
+           <where> ≡ <trim prefix="WHERE" prefixOverrides="AND |OR ">；<set> ≡ <trim prefix="SET" suffixOverrides=",">
+    -->
+    <select id="findUsersByTrim" parameterType="User" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/> FROM user
+        <trim prefix="WHERE" prefixOverrides="AND |OR ">
+            <if test="username != null and username != ''">
+                AND username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+        </trim>
+    </select>
+
+    <!--
+        7. <sql> + <include>：片段复用
+           列清单 userColumns 与条件片段 commonCondition 都定义在上面，这里用 <include refid="..."/> 插进来。
+           片段里能放动态标签且插入后继续被解析——公共条件只维护一份，改一处到处生效。
+    -->
+    <select id="findUsersWithInclude" parameterType="User" resultMap="userResultMap">
+        SELECT <include refid="userColumns"/> FROM user
+        <where>
+            <include refid="commonCondition"/>
+        </where>
+    </select>
+
 </mapper>

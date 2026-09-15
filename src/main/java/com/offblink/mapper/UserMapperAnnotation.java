@@ -80,7 +80,7 @@ public interface UserMapperAnnotation {
      */
     @Select("SELECT id, username, password FROM user")
     @Results({
-            @Result(property = "p1", column = "id", id = true),
+            @Result(property = "p1", column = "id", id = true), // 主键
             @Result(property = "p2", column = "username"),
             @Result(property = "p3", column = "password")
     })
@@ -105,4 +105,40 @@ public interface UserMapperAnnotation {
     @Select("SELECT id, username, password, email, created_at, updated_at FROM user ORDER BY id")
     @ResultMap("annoUserMap")
     List<User> findAllWithAnnoMap();
+
+    // ==================== 第 4-2 节：跨方式引用 XML ResultMap + 注解版动态 SQL ====================
+
+    /**
+     * 注解方式 4：@ResultMap 引用【XML 里定义的】ResultMap —— 跨方式引用。
+     * SQL 写在注解里，column → 属性 的映射规则却复用 XML 的 userResultMap，
+     * 好处是映射规则只维护一份，XML 线与注解线共用。
+     *
+     * 注意这里的 id 必须写全限定名：@ResultMap 的值会先套上「当前接口所在命名空间」前缀
+     * （写成 userResultMap 会被解析成 ...UserMapperAnnotation.userResultMap，直接报
+     *  "Result Maps collection does not contain value"）。带点号的写法会被原样使用，才能指到
+     * UserMapper 命名空间里的那个 resultMap。同一接口内引用自己定义的 @Results(id=...) 才可以用短名。
+     */
+    @Select("SELECT id, username, password, email, created_at, updated_at FROM user "
+            + "WHERE username LIKE CONCAT('%', #{keyword}, '%')")
+    @ResultMap("com.offblink.mapper.UserMapper.userResultMap")
+    List<User> findByNameLikeByXmlMap(@Param("keyword") String keyword);
+
+    /**
+     * 注解版动态 SQL：用 &lt;script&gt; 把 XML 动态标签包进 @Select 字符串（MyBatis 3.x 支持）。
+     * 功能与 XML 版的 findUsersByCondition 完全一致，但全挤在字符串里、引号还要转义、可读性差——
+     * 复杂动态 SQL 写 XML，注解只留给简单语句，这正是本节要得出的结论。
+     */
+    @Select("<script>"
+            + "SELECT id, username, password, email, created_at, updated_at FROM user "
+            + "<where>"
+            + "  <if test='username != null and username != \"\"'>"
+            + "    AND username LIKE CONCAT('%', #{username}, '%')"
+            + "  </if>"
+            + "  <if test='email != null and email != \"\"'>"
+            + "    AND email = #{email}"
+            + "  </if>"
+            + "</where>"
+            + "</script>")
+    @ResultMap("com.offblink.mapper.UserMapper.userResultMap")
+    List<User> findUsersAnnoDynamic(User user);
 }

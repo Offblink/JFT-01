@@ -164,4 +164,41 @@ public class UserMapperAnnotationTest {
             System.out.println("命中 " + users.size() + " 条，第一条 = " + users.get(0));
         }
     }
+
+    // ==================== 第 4-2 节：跨方式引用 XML ResultMap + 注解版动态 SQL ====================
+
+    // 注解方式 4：注解写 SQL，映射规则复用 XML 里的 userResultMap（跨方式引用）
+    @Test
+    public void testFindByNameLikeByXmlMap() {
+        System.out.println("========== 注解 SQL + XML 的 userResultMap（跨方式） ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapperAnnotation mapper = session.getMapper(UserMapperAnnotation.class);
+
+            List<User> users = mapper.findByNameLikeByXmlMap("zhang");
+            System.out.println("命中 " + users.size() + " 条，第一条 = " + users.get(0));
+        }
+    }
+
+    // 注解版动态 SQL：<script> 包住 <where>/<if>，与 XML 版 findUsersByCondition 等价，但可读性差
+    @Test
+    public void testAnnoDynamicScript() {
+        System.out.println("========== 注解版动态 SQL（<script> + <where> + <if>） ==========");
+        try (SqlSession session = sqlSessionFactory.openSession()) {
+            UserMapperAnnotation mapper = session.getMapper(UserMapperAnnotation.class);
+
+            User q1 = new User();
+            q1.setUsername("zhang");
+            System.out.println("--- 只按 username 查 ---");
+            mapper.findUsersAnnoDynamic(q1).forEach(System.out::println);
+
+            User q2 = new User();
+            q2.setUsername("zhang");
+            q2.setEmail("zhangsan@example.com");
+            System.out.println("--- username + email ---");
+            mapper.findUsersAnnoDynamic(q2).forEach(System.out::println);
+
+            System.out.println("--- 都不给 → <where> 省掉 WHERE ---");
+            System.out.println("命中 " + mapper.findUsersAnnoDynamic(new User()).size() + " 条");
+        }
+    }
 }

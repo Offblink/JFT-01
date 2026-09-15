@@ -2,6 +2,7 @@ package com.offblink.mapper;
 
 import com.offblink.entity.User;
 import com.offblink.entity.Vo;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 import java.util.Map;
@@ -49,4 +50,27 @@ public interface UserMapper {
 
     /** ③ resultMap + VO：列名原样写，映射规则写在 XML 的 userVoMap 里（与 ② 同一份数据、两种写法） */
     List<Vo> findAllByVoMap();
+
+    // ==================== 第 4-2 节：动态 SQL（XML 方式，6 种标签 + 片段复用） ====================
+
+    /** 1. <if> + <where>：有哪个条件查哪个，全空时 <where> 连 WHERE 一起省掉 */
+    List<User> findUsersByCondition(User user);
+
+    /** 2. <set>：只更新非空字段，自动去掉末尾逗号（至少传一个待改字段，否则拼不出 SET） */
+    int updateUserSelective(User user);
+
+    /** 3. <choose>/<when>/<otherwise>：互斥分支，按 id → username → email 的优先级取第一个成立的 */
+    List<User> findUserPriority(User user);
+
+    /** 4. <foreach> 批量查询：ids 展开成 IN (…) */
+    List<User> findByIds(@Param("ids") List<Integer> ids);
+
+    /** 5. <foreach> 批量插入：一条 INSERT 拼出多组 VALUES */
+    int batchInsert(List<User> users);
+
+    /** 6. <trim>：自定义裁剪，<where>/<set> 的通用写法 */
+    List<User> findUsersByTrim(User user);
+
+    /** 7. <sql> + <include>：列清单与公共条件片段复用 */
+    List<User> findUsersWithInclude(User user);
 }
