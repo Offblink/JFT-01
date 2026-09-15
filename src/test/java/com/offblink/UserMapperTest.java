@@ -268,6 +268,7 @@ public class UserMapperTest {
             u2.setEmail("batch_b@offblink.test");
 
             // email 列上有唯一约束，两行必须给不同邮箱（同一条 INSERT 里重复也会整条失败）
+            // 对应方法中的java.util.List
             System.out.println("批量插入影响行数：" + mapper.batchInsert(Arrays.asList(u1, u2)));
 
             // 回查：按 username 模糊捞回刚才这两条（顺带再验证一次 <if>+<where> 的单条件分支）
