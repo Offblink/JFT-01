@@ -19,6 +19,7 @@ public class Vo { //创建一个VO类 用于封装查询结果
     public Vo() {
     }
 
+    // 可这几个起名起得不明所以的属性，怪不得要映射呢😐
     public Vo(Integer p1, String p2, String p3) {
         P1 = p1;
         P2 = p2;
