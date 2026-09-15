@@ -46,6 +46,9 @@ public class EmpMapperTest {
     @Test
     public void testSelectAll() {
         System.out.println("========== Emp：查询所有（resultMap 映射验证） ==========");
+
+        // 这里，调用了selectAll，为啥得到的是emp列表呢？
+        // 原因很简单，因为我们的type是emp
         List<Emp> list = mapper.selectAll();
         for (Emp e : list) {
             System.out.println(e);

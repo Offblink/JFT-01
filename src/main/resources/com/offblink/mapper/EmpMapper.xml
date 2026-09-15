@@ -9,6 +9,9 @@
 <mapper namespace="com.offblink.mapper.EmpMapper">
 
     <!-- 自定义结果映射：emp_id/emp_name/hire_date 与属性名不一致，显式声明（指导书任务 2.3） -->
+<!--    在这里！type是模型类，property是属性名，column是映射的名称-->
+<!--    当然，可以使用注解完成，只是这样也体现不出注解简洁的优势了-->
+<!--    注解适用于简单的情况，当情况变复杂，我们倾向于写成java+xml-->
     <resultMap id="empMap" type="Emp">
         <id property="empId" column="emp_id"/>
         <result property="empName" column="emp_name"/>
@@ -27,6 +30,7 @@
 
     <!-- ==================== 基础 CRUD ==================== -->
 
+<!--    resultMap为返回映射，往上看（一般用于多表查询等复杂情况-->
     <select id="selectAll" resultMap="empMap">
         SELECT <include refid="allColumns"/> FROM ssm_emp.emp
     </select>
