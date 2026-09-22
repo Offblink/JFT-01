@@ -1,4 +1,6 @@
-# JFT-01 · mybatis01
+# mybatis01
+
+> 仓名 2026-09-22 由 `JFT-01` 改为 `mybatis01`（消歧义：本仓装的就是课程项目 mybatis01）。旧地址 `github.com/Offblink/JFT-01` 会自动重定向。
 
 《JAVA框架技术（一）》（AI 赋能版）实验一：**MyBatis 环境搭建与基础 CRUD 实操**。
 以 AI 辅助、人脑主导的方式完成，全程保留开发轨迹（Git 提交历史即过程记录）。
@@ -7,7 +9,7 @@
 
 | 仓 | 装什么 |
 |---|---|
-| **本仓 `Offblink/JFT-01`（`master`）** | **课程项目 `mybatis01`**：跟着课件一路做的完整版（第 1–5 章练习全在里面，47 个用例；包名 `com.offblink.mapper`） |
+| **本仓 `Offblink/mybatis01`（`master`）** | **课程项目 `mybatis01`**：跟着课件一路做的完整版（第 1–5 章练习全在里面，47 个用例；包名 `com.offblink.mapper`） |
 | `Offblink/JFT-E1`（`main`） | **实验一交付版**：按实验要求整理过的版本（包名 `com.offblink.lab01`，38 个用例，报告草稿在 `docs/实验一/`） |
 
 老师给的课程材料（讲义、示例代码、要求与评分标准、课设评分表）不在代码仓里，在本地 `~/Desktop/JFT1/`。
