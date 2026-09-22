@@ -1,10 +1,10 @@
-package com.offblink;
+package com.offblink.chapter05;
 
 import com.offblink.entity.Dept;
 import com.offblink.entity.Emp;
 import com.offblink.entity.Skill;
-import com.offblink.mapper.DeptRelationMapper;
-import com.offblink.mapper.EmpRelationMapper;
+import com.offblink.chapter05.DeptRelationMapper;
+import com.offblink.chapter05.EmpRelationMapper;
 import com.offblink.util.MyBatisUtil;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.After;

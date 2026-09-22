@@ -2,8 +2,8 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<!-- 与接口 com.offblink.mapper.DeptRelationMapper 同包同名，<mapper class> 自动发现 -->
-<mapper namespace="com.offblink.mapper.DeptRelationMapper">
+<!-- 与接口 com.offblink.chapter05.DeptRelationMapper 同包同名，由 <package name="com.offblink.chapter05"/> 扫包注册 -->
+<mapper namespace="com.offblink.chapter05.DeptRelationMapper">
 
     <!--
         ==================== resultMap：部门 + 员工列表（一对多） ====================

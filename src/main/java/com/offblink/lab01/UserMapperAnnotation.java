@@ -1,4 +1,4 @@
-package com.offblink.mapper;
+package com.offblink.lab01;
 
 import com.offblink.entity.User;
 import com.offblink.entity.Vo;
@@ -120,7 +120,7 @@ public interface UserMapperAnnotation {
      */
     @Select("SELECT id, username, password, email, created_at, updated_at FROM user "
             + "WHERE username LIKE CONCAT('%', #{keyword}, '%')")
-    @ResultMap("com.offblink.mapper.UserMapper.userResultMap")
+    @ResultMap("com.offblink.lab01.UserMapper.userResultMap")
     List<User> findByNameLikeByXmlMap(@Param("keyword") String keyword);
 
     /**
@@ -139,6 +139,6 @@ public interface UserMapperAnnotation {
             + "  </if>"
             + "</where>"
             + "</script>")
-    @ResultMap("com.offblink.mapper.UserMapper.userResultMap")
+    @ResultMap("com.offblink.lab01.UserMapper.userResultMap")
     List<User> findUsersAnnoDynamic(User user);
 }

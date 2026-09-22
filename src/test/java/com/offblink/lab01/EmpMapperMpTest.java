@@ -1,9 +1,9 @@
-package com.offblink;
+package com.offblink.lab01;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.offblink.entity.Emp;
-import com.offblink.mapper.EmpMapper;
+import com.offblink.lab01.EmpMapper;
 import com.offblink.util.MyBatisUtil;
 import org.apache.ibatis.session.SqlSession;
 import org.junit.Before;

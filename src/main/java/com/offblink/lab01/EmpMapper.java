@@ -1,4 +1,4 @@
-package com.offblink.mapper;
+package com.offblink.lab01;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.offblink.entity.Emp;
@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * 员工 Mapper（实验一指导书任务 2.3 / 3 / 4.3）
- * 继承 BaseMapper 获得零 SQL 通用 CRUD；自定义方法走 XML（resources/com/offblink/mapper/EmpMapper.xml）。
+ * 继承 BaseMapper 获得零 SQL 通用 CRUD；自定义方法走 XML（resources/com/offblink/lab01/EmpMapper.xml）。
  * 自定义方法名刻意避开 BaseMapper 同名方法（insert/selectById/deleteById/updateById），避免注入冲突。
  */
 public interface EmpMapper extends BaseMapper<Emp> {

@@ -2,11 +2,11 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<!-- 与接口 com.offblink.mapper.EmpMapper 同包同名（resources/com/offblink/mapper/）：
+<!-- 与接口 com.offblink.lab01.EmpMapper 同包同名（resources/com/offblink/lab01/）：
      <mapper class> 注册和 cfg.addMapper() 都能自动发现本文件 -->
 <!-- 表名一律 schema 限定为 ssm_emp.employer：本项目共用一个数据源（URL 指向 mybatis_db），
      未限定的 emp 会被解析到当前库 mybatis_db 而报 Table doesn't exist -->
-<mapper namespace="com.offblink.mapper.EmpMapper">
+<mapper namespace="com.offblink.lab01.EmpMapper">
 
     <!-- 自定义结果映射：emp_id/emp_name/hire_date 与属性名不一致，显式声明（指导书任务 2.3） -->
 <!--    在这里！type是模型类，property是属性名，column是映射的名称-->

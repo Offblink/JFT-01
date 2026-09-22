@@ -1,8 +1,8 @@
-package com.offblink;
+package com.offblink.lab01;
 
 import com.offblink.entity.User;
 import com.offblink.entity.Vo;
-import com.offblink.mapper.UserMapperAnnotation;
+import com.offblink.lab01.UserMapperAnnotation;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;

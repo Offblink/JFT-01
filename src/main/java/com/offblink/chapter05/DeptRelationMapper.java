@@ -1,4 +1,4 @@
-package com.offblink.mapper;
+package com.offblink.chapter05;
 
 import com.offblink.entity.Dept;
 import org.apache.ibatis.annotations.Many;
@@ -42,7 +42,7 @@ public interface DeptRelationMapper {
             @Result(property = "deptName", column = "dept_name"),
             @Result(property = "loc", column = "loc"),
             @Result(property = "emps", column = "dept_id",
-                    many = @Many(select = "com.offblink.mapper.EmpRelationMapper.selectEmpsByDeptId"))
+                    many = @Many(select = "com.offblink.chapter05.EmpRelationMapper.selectEmpsByDeptId"))
     })
     Dept one2manyByAnn(Integer deptId);
 }

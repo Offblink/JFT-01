@@ -1,8 +1,8 @@
-package com.offblink;
+package com.offblink.lab01;
 
 import com.offblink.entity.User;
 import com.offblink.entity.Vo;
-import com.offblink.mapper.UserMapper;
+import com.offblink.lab01.UserMapper;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -37,7 +37,7 @@ public class UserMapperTest {
         System.out.println("========== 测试查询所有用户 ==========");
         try (SqlSession session = sqlSessionFactory.openSession()) {
             // 两种调用方式：getMapper 代理（推荐，类型安全） vs 字符串直调（无类型检查）
-            List<User> users = session.selectList("com.offblink.mapper.UserMapper.findAll");
+            List<User> users = session.selectList("com.offblink.lab01.UserMapper.findAll");
             for (User user : users) {
                 System.out.println(user);
             }

@@ -1,4 +1,4 @@
-package com.offblink.mapper;
+package com.offblink.chapter05;
 
 import com.offblink.entity.Emp;
 import com.offblink.entity.Skill;
@@ -21,7 +21,7 @@ import java.util.List;
  *   selectSkillsByEmpId                               → 多对多的子查询（被 many2manyByAnn 的 @Many 引用）
  *   selectEmpsByDeptId                                → 一对多的子查询（被 DeptRelationMapper.one2manyByAnn 引用）
  * </p>
- * 适配点（老师的包名/列名 → 本项目）：{@code com.chapter05} → {@code com.offblink.mapper}、
+ * 适配点（老师的包名/列名 → 本项目）：{@code com.chapter05} → {@code com.offblink.chapter05}、
  * {@code com.entity} → {@code com.offblink.entity}、{@code emp/empno} → {@code ssm_emp.employer/emp_id}、
  * {@code deptno} → {@code dept_id}、关联对象字段 {@code dept} → {@code deptInfo}（本项目的 {@code dept}
  * 已被实验一的部门文本列占用）。表名一律 schema 限定。
@@ -61,7 +61,7 @@ public interface EmpRelationMapper {
             @Result(property = "deptId", column = "dept_id"),
             /* column 写的是"结果集的列名"，它是子查询的入参；property 才是 Emp 里的字段 */
             @Result(property = "deptInfo", column = "dept_id",
-                    one = @One(select = "com.offblink.mapper.DeptRelationMapper.findById"))
+                    one = @One(select = "com.offblink.chapter05.DeptRelationMapper.findById"))
     })
     Emp one2oneByAnn(Integer empId);
 
@@ -90,7 +90,7 @@ public interface EmpRelationMapper {
             @Result(property = "status", column = "status"),
             @Result(property = "deptId", column = "dept_id"),
             @Result(property = "deptInfo", column = "dept_id",
-                    one = @One(select = "com.offblink.mapper.DeptRelationMapper.findById"))
+                    one = @One(select = "com.offblink.chapter05.DeptRelationMapper.findById"))
     })
     List<Emp> many2oneByAnn();
 
@@ -120,7 +120,7 @@ public interface EmpRelationMapper {
             @Result(property = "status", column = "status"),
             @Result(property = "deptId", column = "dept_id"),
             @Result(property = "skills", column = "emp_id",
-                    many = @Many(select = "com.offblink.mapper.EmpRelationMapper.selectSkillsByEmpId"))
+                    many = @Many(select = "com.offblink.chapter05.EmpRelationMapper.selectSkillsByEmpId"))
     })
     Emp many2manyByAnn(Integer empId);
 

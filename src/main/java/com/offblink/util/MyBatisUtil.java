@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.core.MybatisSqlSessionFactoryBuilder;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
-import com.offblink.mapper.EmpMapper;
+import com.offblink.lab01.EmpMapper;
 import org.apache.ibatis.io.Resources;
 import org.apache.ibatis.logging.slf4j.Slf4jImpl;
 import org.apache.ibatis.mapping.Environment;
@@ -72,7 +72,7 @@ public final class MyBatisUtil {
                     cfg.setEnvironment(new Environment("mp", new JdbcTransactionFactory(), pooledDataSource()));
                     // 程序化配置不读 mybatis-config.xml，实体别名需单独注册（XML 里 resultType="Emp" 依赖它）
                     cfg.getTypeAliasRegistry().registerAliases("com.offblink.entity");
-                    // 接口与 XML 同包同名（resources/com/offblink/mapper/EmpMapper.xml），addMapper 自动加载 XML
+                    // 接口与 XML 同包同名（resources/com/offblink/lab01/EmpMapper.xml），addMapper 自动加载 XML
                     cfg.addMapper(EmpMapper.class);
 
                     // 正确的分页插件注册：MybatisPlusInterceptor + PaginationInnerInterceptor

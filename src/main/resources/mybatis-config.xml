@@ -44,13 +44,15 @@
 
     <!--
         注册 Mapper（课件「方式2」：一条扫包，全部接口 + XML 一起注册）。
-        成立的前提是**每个 XML 都放在 resources/com/offblink/mapper/ 下、与接口同名**——
+        成立的前提是**每个 XML 都放在与接口同包的 resources/com/offblink/{lab01,chapter05}/ 下、与接口同名**——
+        （每个装着 Mapper 的包写一行，本项目＝实验一的 lab01 + 第5章的 chapter05）
         扫包时 MyBatis 按「接口全限定名 → 类路径同名资源」去找 XML，找不到就当纯注解接口处理；
         XML 放错位置（如搬到 resources/mapper/ 这种扁平目录）会在运行期报 Invalid bound statement (not found)，
         编译期不报错，所以挪 XML 时务必和这里同步。
     -->
     <mappers>
-        <package name="com.offblink.mapper"/>
+        <package name="com.offblink.lab01"/>
+        <package name="com.offblink.chapter05"/>
     </mappers>
 
 </configuration>

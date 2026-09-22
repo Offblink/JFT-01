@@ -2,11 +2,11 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<!-- 与接口 com.offblink.mapper.EmpRelationMapper 同包同名（resources/com/offblink/mapper/）：
+<!-- 与接口 com.offblink.chapter05.EmpRelationMapper 同包同名（resources/com/offblink/chapter05/）：
      <mapper class> 注册时会自动找到本文件 -->
 <!-- 表名一律 schema 限定 ssm_emp.xxx：本项目 JDBC URL 指向 mybatis_db，
      不限定 schema 的话 employer/dept 会被解析到 mybatis_db 而报 Table doesn't exist -->
-<mapper namespace="com.offblink.mapper.EmpRelationMapper">
+<mapper namespace="com.offblink.chapter05.EmpRelationMapper">
 
     <!--
         ==================== resultMap：员工 + 部门 ====================

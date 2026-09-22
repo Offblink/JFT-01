@@ -4,7 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <!-- namespace 必须与 Mapper 接口的全限定名完全一致 -->
-<mapper namespace="com.offblink.mapper.UserMapper">
+<mapper namespace="com.offblink.lab01.UserMapper">
 
     <!-- 查询所有用户 -->
     <!--从这行开始User表的映射就起效了-->
