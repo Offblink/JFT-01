@@ -1,75 +1,47 @@
-# JFT-01 · mybatis01
+# JFT-01 · 《JAVA框架技术（一）》课程文件仓
 
-《JAVA框架技术（一）》（AI 赋能版）实验一：**MyBatis 环境搭建与基础 CRUD 实操**。
-以 AI 辅助、人脑主导的方式完成，全程保留开发轨迹（Git 提交历史即过程记录）。
+课程代码 1960229 ｜ 2026—2027 学年第一学期 ｜ 软件工程 24 级 ｜ 2.5 学分（理论 32 + 实验 16 + 双师 2）
 
-## 技术栈
+**两个仓分工**：
 
-| 类别 | 选型 |
+| 仓 | 装什么 |
 |---|---|
-| 语言 / JDK | Java 8 语法目标（老师推荐 JDK 21 运行） |
-| 构建 | Maven 3.9.x（阿里云镜像），war 打包 |
-| 持久层 | MyBatis 3.5.13 |
-| 数据库 | MySQL 8/9（`mysql-connector-j` 8.0.33） |
-| 测试 | JUnit 4.13.2 |
-| 日志 | SLF4J 门面 + Logback 1.2.13（控制台 + 滚动文件双输出） |
-| Web | JavaEE（javax.servlet-api 4.0.1，web.xml） |
+| **本仓 `Offblink/JFT-01`** | **课程**：老师给的讲义、示例代码、要求与评分标准、课设评分表（`01` = 课程编号） |
+| `Offblink/JFT-E1` | **实验**：自己写的代码 —— 实验一（MyBatis + MyBatis-Plus，38 个用例） |
 
-## 功能
+## 仓里有什么
 
-- 用户表完整 CRUD：`findAll` / `findById` / `addUser`（自增主键回填）/ `updateUser` / `deleteUser`
-- 用户名模糊查询 `findByUsernameLike`（`LIKE CONCAT('%', #{keyword}, '%')` 预编译防注入）
-- 生命周期测试：以回填的主键 id 贯穿增→改→查→删，无顺序依赖，跑完自清理
-- 结果映射（第 4 节）：
-  - XML 侧三连对照——① `findAllWithColumnAlias`（别名 `uid` 对不上属性名 `id`，resultType 丢字段）、
-    ② `findAllByVoWithResultType`（别名即契约，靠 `p1/p2/p3` 对上 VO）、③ `findAllByVoMap`（`resultMap` 集中声明映射规则）
-  - 注解侧两式——`@Results` 匿名映射成 VO；`@Results(id="annoUserMap")` 命名后由 `@ResultMap("annoUserMap")` 复用
-- 动态 SQL（第 4-2 节）：
-  - XML 六种标签：`<if>`+`<where>` 条件组合、`<set>` 选择性更新、`<choose>` 互斥分支、
-    `<foreach>` IN 查询与一条 INSERT 批量插入、`<trim>` 自定义裁剪、`<sql>`+`<include>` 片段复用
-  - 注解线：`<script>` 包住动态标签的写法，以及注解 SQL 用全限定名 `@ResultMap` 跨方式引用 XML 的 `userResultMap`
+| 目录 | 内容 |
+|---|---|
+| `课程/1` … `课程/5` | 每章材料：讲义 HTML（详细版 / 示例代码版）+ `code/`（当堂示例代码，第 5 章是 `chapter05.rar`）+ `photo/`（板书与截图） |
+| `实验/要求与评分标准/` | 课程实验指导书、实验报告评分标准、实验与项目要求汇总 |
+| `实验/实验一/截图/` | 实验一的过程截图 |
+| `课设/` | 《JAVA框架技术（一）》课程项目设计评分表 |
 
-## 快速开始
+本机另有一份同内容的工作副本：`~/Desktop/JFT1/`（日常翻阅用，两边同源）。
 
-```bash
-# 1. 建库建表（MySQL 8+）
-mysql -u root -p < sql/user_db.sql
+## 版权说明
 
-# 2. 配置数据库连接（占位符改为你自己的本地配置）
-#    src/main/resources/db.properties
+仓内讲义、示例代码、指导书、评分表均为**课程方提供的教学材料，版权归课程组 / 任课老师**，
+此处仅作个人学习留档，请勿外传或再分发。自己写的代码不在这里（见 `Offblink/JFT-E1`）。
 
-# 3. 跑测试
-mvn test -Dtest=UserMapperTest
-```
+## 课程要求（要点）
 
-> `db.properties` 仓库内为占位配置，本地实际配置不提交（skip-worktree），请勿将真实口令提交到仓库。
->
-> 其中 JDBC URL 需要 `allowMultiQueries=true`（批量更新 `updateBatch` 用 `<foreach>` 分号拼多条 UPDATE，
-> 不开这个开关驱动会直接报语法错误）；`allowPublicKeyRetrieval=true` 是 MySQL 8/9 在 `useSSL=false` 下必须的。
+| 事项 | 学时 | 计分 |
+|---|---|---|
+| 实验一（MyBatis 与 MyBatis-Plus 环境 + CRUD） | 6 | 报告 3 日内提交，百分制 S₁ 按 **6/16** 折算 |
+| 实验二（SSM 整合 + EMP 员工管理 MIS） | 10（含双师 2 学时） | 报告 3 日内提交，百分制 S₂ 按 **10/16** 折算 |
+| 课程项目（基于实验二升级为企业级 CMS） | — | 总分 **20 分**，单独评分 |
 
-## 项目结构
+- 环境：JDK 8 语法目标（老师推荐 JDK 21 运行）、Maven + 阿里云镜像、MySQL 8.0.x、Tomcat 9（实验二起）
+- AI 使用：允许，但要留"AI 应用记录"（工具 + 对话留痕），报告须写人工校验过程
+- 实验二权重是实验一的近两倍，且是课程项目的基础——优先做扎实
 
-```
-├── sql/user_db.sql                     # 建库建表 + 测试数据
-├── src/main/java/com/offblink/
-│   ├── entity/User.java                # 实体类（驼峰映射 created_at → createdAt）
-│   ├── entity/Vo.java                  # 查询结果 VO（第 4 节：resultMap 对接「任意模型」的演示）
-│   └── mapper/UserMapper.java          # Mapper 接口（动态代理）
-├── src/main/resources/
-│   ├── db.properties                   # 连接配置（占位）
-│   ├── mybatis-config.xml              # 全局配置（logImpl=SLF4J、驼峰、typeAliases）
-│   ├── logback.xml                     # 日志：控制台 + logs/mybatis.log 滚动文件
-│   └── mapper/UserMapper.xml           # SQL 映射
-├── src/main/webapp/                    # JavaEE web 骨架
-├── src/test/java/com/offblink/UserMapperTest.java
-└── docs/                               # 实验报告草稿、会话回顾（AI 协作过程记录）
-```
+## 进度
 
-## 文档
-
-- [实验报告草稿](docs/实验报告-实验一-草稿.md)
-- [会话回顾](docs/会话回顾-实验一-20260901.md) —— AI 辅助开发全程记录与人工校验过程
-
-## License
-
-[MIT](LICENSE)
+| 事项 | 状态 | 交付物在 |
+|---|---|---|
+| 实验一（MyBatis + MyBatis-Plus） | 完成 | `Offblink/JFT-E1`（38 用例绿；报告草稿在它的 `docs/实验一/`） |
+| 第 5 章关联映射（课件练习，不计分） | 讲义与 `chapter05.rar` 在本仓 `课程/5/` | 自己那份练习已按需删除 |
+| 实验二（SSM 整合 + EMP MIS） | 未开始（权重最高） | — |
+| 课程项目（企业级 CMS） | 未开始（基于实验二升级） | — |

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chapter01.UserMapper">
+
+    <!-- ==================== 原有方法（保持兼容）==================== -->
+
+
+    <!-- 查询所有用户 -->
+    <select id="findAllByxml" resultType="com.entity.User">
+        SELECT * FROM user
+    </select>
+
+    <select id="testfind" resultType="com.entity.User">
+        SELECT * FROM user WHERE username = 'zhangsan'
+    </select>
+
+    <!-- 根据ID查询用户 -->
+    <select id="findById" parameterType="int" resultType="com.entity.User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+
+    <!-- 添加用户 -->
+    <insert id="addUser" parameterType="com.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user(username, password, email)
+        VALUES(#{username}, #{password}, #{email})
+    </insert>
+
+    <!-- 更新用户 -->
+    <update id="updateUser" parameterType="com.entity.User">
+        UPDATE user
+        SET username = #{username},
+            password = #{password},
+            email = #{email}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="deleteUser" parameterType="int">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+    <!-- ==================== 别名方法（与 HTML 教学一致）==================== -->
+
+    <!-- 根据ID查询用户（别名：selectById） -->
+    <select id="selectById" parameterType="int" resultType="com.entity.User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+
+    <!-- 添加用户（别名：insert） -->
+    <insert id="insert" parameterType="com.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user(username, password, email)
+        VALUES(#{username}, #{password}, #{email})
+    </insert>
+
+    <!-- 更新用户（别名：update） -->
+    <update id="update" parameterType="com.entity.User">
+        UPDATE user
+        SET username = #{username},
+            password = #{password},
+            email = #{email}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除用户（别名：deleteById） -->
+    <delete id="deleteById" parameterType="int">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+    <!-- 查询所有用户（别名：selectAll） -->
+    <select id="selectAll" resultType="com.entity.User">
+        SELECT * FROM user
+    </select>
+
+</mapper>

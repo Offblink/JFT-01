@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第01章第3节 Mybatis映射器的使用与注解开发 - 详细版</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; }
+        h2 { color: #2980b9; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 40px; }
+        h3 { color: #16a085; margin-top: 30px; }
+        h4 { color: #7f8c8d; margin-top: 20px; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 5px; overflow-x: auto; }
+        code { font-family: 'Consolas', 'Monaco', monospace; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 8px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第01章第3节 Mybatis映射器的使用与注解开发 - 详细版</h1>
+        
+        <h2>一、实验目标</h2>
+        <ol>
+            <li><strong>注解开发</strong>：掌握使用注解方式完成 CRUD 开发</li>
+            <li><strong>@Param 注解</strong>：掌握多参数传递的正确方式</li>
+            <li><strong>#{} 和 ${}</strong>：理解区别，掌握安全用法</li>
+            <li><strong>混合开发</strong>：掌握 XML 与注解混合开发</li>
+        </ol>
+        
+        <h2>二、第1学时：注解开发完整操作</h2>
+        
+        <h3>2.1 创建注解方式的 Mapper 接口</h3>
+        <p><strong>操作：</strong>创建 <code>UserMapperAnnotation.java</code> 接口，使用注解方式</p>
+        
+        <pre><code>package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 用户 Mapper 接口（注解方式）
+ */
+public interface UserMapperAnnotation {
+
+    /**
+     * 查询所有用户（@Select 注解）
+     */
+    @Select("SELECT * FROM user")
+    List<User> findAll();
+
+    /**
+     * 根据 ID 查询用户
+     */
+    @Select("SELECT * FROM user WHERE id = #{id}")
+    User findById(Integer id);
+
+    /**
+     * 添加用户（@Insert 注解 + 获取自增主键）
+     */
+    @Insert("INSERT INTO user(username, password, email) VALUES(#{username}, #{password}, #{email})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int addUser(User user);
+
+    /**
+     * 更新用户（@Update 注解）
+     */
+    @Update("UPDATE user SET username=#{username}, email=#{email} WHERE id=#{id}")
+    int updateUser(User user);
+
+    /**
+     * 删除用户（@Delete 注解）
+     */
+    @Delete("DELETE FROM user WHERE id = #{id}")
+    int deleteUser(Integer id);
+
+    /**
+     * 多条件查询（@Param 注解）
+     */
+    @Select("SELECT * FROM user WHERE username=#{name} AND email=#{email}")
+    List<User> findByNameAndEmail(@Param("name") String username, @Param("email") String email);
+
+    /**
+     * 模糊查询（${} 用法，注意 SQL 注入风险）
+     */
+    @Select("SELECT * FROM user WHERE username LIKE '%${username}%'")
+    List<User> findByNameLike(@Param("username") String username);
+
+    /**
+     * 动态表名查询（${} 正确用法）
+     */
+    @Select("SELECT * FROM ${tableName}")
+    List<User> findAllByTableName(@Param("tableName") String tableName);
+}</code></pre>
+        
+        <div class="note">
+            <strong>注意事项：</strong>
+            <ul>
+                <li>使用注解方式，不需要创建 <code>UserMapperAnnotation.xml</code> 文件</li>
+                <li>但需要在 <code>mybatis-config.xml</code> 中注册这个 Mapper 接口</li>
+            </ul>
+        </div>
+        
+        <h3>2.2 注册注解方式的 Mapper 接口</h3>
+        <p><strong>操作：</strong>在 <code>mybatis-config.xml</code> 中添加 <code>&lt;mapper class="..."/&gt;</code></p>
+        
+        <pre><code>&lt;!-- 注册 Mapper（注解方式） --&gt;
+&lt;mappers&gt;
+    &lt;!-- XML 方式 --&gt;
+    &lt;mapper resource="mapper/UserMapper.xml"/&gt;
+    
+    &lt;!-- 注解方式（使用 class 属性） --&gt;
+    &lt;mapper class="com.example.mapper.UserMapperAnnotation"/&gt;
+&lt;/mappers&gt;</code></pre>
+        
+        <p><strong>两种注册方式对比：</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>方式</th>
+                    <th>配置</th>
+                    <th>适用场景</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>XML 方式</td>
+                    <td>&lt;mapper resource="mapper/XXXMapper.xml"/&gt;</td>
+                    <td>SQL 写在 XML 文件中</td>
+                </tr>
+                <tr>
+                    <td>注解方式</td>
+                    <td>&lt;mapper class="com.example.mapper.XXXMapper"/&gt;</td>
+                    <td>SQL 写在注解中</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3>2.3 编写测试类，测试注解方式</h3>
+        <p><strong>操作：</strong>创建 <code>UserMapperAnnotationTest.java</code> 测试类</p>
+        
+        <pre><code>package com.example;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapperAnnotation;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+/**
+ * 注解方式 Mapper 测试类
+ */
+public class UserMapperAnnotationTest {
+
+    private InputStream is;
+    private SqlSession session;
+    private UserMapperAnnotation userMapper;
+
+    @Before
+    public void init() throws IOException {
+        is = Resources.getResourceAsStream("mybatis-config.xml");
+        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is);
+        session = factory.openSession(true);
+        userMapper = session.getMapper(UserMapperAnnotation.class);
+    }
+
+    @After
+    public void destroy() throws IOException {
+        if (session != null) session.close();
+        if (is != null) is.close();
+    }
+
+    @Test
+    public void testFindAll() {
+        List<User> users = userMapper.findAll();
+        for (User user : users) {
+            System.out.println(user);
+        }
+        assert users.size() > 0;
+    }
+
+    @Test
+    public void testFindByNameAndEmail() {
+        List<User> users = userMapper.findByNameAndEmail("张三", "zhangsan@qq.com");
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    @Test
+    public void testFindByNameLike() {
+        // 注意：这里存在 SQL 注入风险（演示用）
+        List<User> users = userMapper.findByNameLike("张");
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+}</code></pre>
+        
+        <h2>三、第2学时：@Param 注解详细操作</h2>
+        
+        <h3>3.1 多参数传递问题复现</h3>
+        <p><strong>操作：</strong>创建不带 @Param 注解的方法，运行测试，查看报错</p>
+        
+        <pre><code>// 错误示例：多个参数，没有 @Param 注解
+@Select("SELECT * FROM user WHERE username=#{username} AND password=#{password}")
+User login(String username, String password);
+
+// 调用时报错：
+// Parameter 'username' not found. Available parameters are [arg0, arg1, param1, param2]</code></pre>
+        
+        <h3>3.2 使用 @Param 注解解决问题</h3>
+        <p><strong>操作：</strong>添加 @Param 注解，指定参数名</p>
+        
+        <pre><code>// 正确示例：使用 @Param 注解
+@Select("SELECT * FROM user WHERE username=#{username} AND password=#{password}")
+User login(@Param("username") String username, @Param("password") String password);
+
+// 调用
+User user = userMapper.login("张三", "123456");
+System.out.println(user);</code></pre>
+        
+        <h3>3.3 使用 Map 传递多个参数</h3>
+        <p><strong>操作：</strong>当参数较多时，使用 Map 集合</p>
+        
+        <pre><code>// Mapper 接口
+@Select("SELECT * FROM user WHERE username=#{username} AND email=#{email} AND password=#{password}")
+List<User> findUserByMap(Map<String, Object> map);
+
+// 测试类
+@Test
+public void testFindUserByMap() {
+    Map<String, Object> map = new HashMap<>();
+    map.put("username", "张三");
+    map.put("email", "zhangsan@qq.com");
+    map.put("password", "123456");
+    
+    List<User> users = userMapper.findUserByMap(map);
+    for (User user : users) {
+        System.out.println(user);
+    }
+}</code></pre>
+        
+        <h2>四、第3学时：#{} 和 ${} 对比实验</h2>
+        
+        <h3>4.1 #{} 占位符测试（安全）</h3>
+        <p><strong>操作：</strong>使用 #{} 进行参数传递，查看日志输出</p>
+        
+        <pre><code>@Select("SELECT * FROM user WHERE username = #{username}")
+User findByUsername(@Param("username") String username);
+
+// 测试
+@Test
+public void testFindByUsername() {
+    User user = userMapper.findByUsername("张三");
+    System.out.println(user);
+}
+
+// 日志输出：
+// ==>  Preparing: SELECT * FROM user WHERE username = ?
+// ==> Parameters: 张三(String)
+// <==      Total: 1</code></pre>
+        
+        <p><strong>分析：</strong></p>
+        <ul>
+            <li>SQL 语句使用 <code>?</code> 占位符（PreparedStatement）</li>
+            <li>参数值通过 <code>Parameters</code> 传入</li>
+            <li>安全，防 SQL 注入</li>
+        </ul>
+        
+        <h3>4.2 ${} 字符串拼接测试（不安全）</h3>
+        <p><strong>操作：</strong>使用 ${} 进行参数传递，查看日志输出</p>
+        
+        <pre><code>@Select("SELECT * FROM user WHERE username = '${username}'")
+User findByUsername2(@Param("username") String username);
+
+// 测试
+@Test
+public void testFindByUsername2() {
+    User user = userMapper.findByUsername2("张三");
+    System.out.println(user);
+}
+
+// 日志输出：
+// ==>  Preparing: SELECT * FROM user WHERE username = '张三'
+// ==> Parameters:
+// <==      Total: 1</code></pre>
+        
+        <p><strong>分析：</strong></p>
+        <ul>
+            <li>SQL 语句直接拼接字符串（Statement）</li>
+            <li>没有 <code>Parameters</code> 输出（参数直接拼接到 SQL 中）</li>
+            <li>不安全，易 SQL 注入</li>
+        </ul>
+        
+        <h3>4.3 SQL 注入演示</h3>
+        <p><strong>操作：</strong>演示 ${} 的 SQL 注入风险</p>
+        
+        <pre><code>// 使用 ${}（危险）
+@Select("SELECT * FROM user WHERE username = '${username}' AND password = '${password}'")
+User loginUnsafe(@Param("username") String username, @Param("password") String password);
+
+// 测试 SQL 注入
+@Test
+public void testSqlInjection() {
+    // 正常输入
+    User user1 = userMapper.loginUnsafe("张三", "123456");
+    System.out.println("正常登录：" + user1);
+    
+    // SQL 注入攻击
+    User user2 = userMapper.loginUnsafe("admin' -- ", "任意密码");
+    System.out.println("SQL注入登录：" + user2);
+    // 结果：user2 不为 null，登录成功（攻击成功！）
+}
+
+// 使用 #{}（安全）
+@Select("SELECT * FROM user WHERE username = #{username} AND password = #{password}")
+User loginSafe(@Param("username") String username, @Param("password") String password);
+
+// 测试
+@Test
+public void testSqlInjectionSafe() {
+    // SQL 注入攻击（失败）
+    User user = userMapper.loginSafe("admin' -- ", "任意密码");
+    System.out.println("安全登录：" + user);
+    // 结果：user 为 null，登录失败（攻击失败！）
+}</code></pre>
+        
+        <h2>五、第4学时：XML 与注解混合开发</h2>
+        
+        <h3>5.1 混合开发场景</h3>
+        <p><strong>场景：</strong>简单 CRUD 用注解，复杂 SQL 用 XML</p>
+        
+        <p><strong>操作：</strong>在同一个项目中，部分方法用注解，部分方法用 XML</p>
+        
+        <pre><code>// UserMapperMixed.java（混合开发）
+public interface UserMapperMixed {
+    
+    // 简单查询：使用注解
+    @Select("SELECT * FROM user WHERE id = #{id}")
+    User findById(Integer id);
+    
+    // 复杂查询：使用 XML（在 UserMapperMixed.xml 中配置）
+    List<User> findByCondition(User user);
+}
+
+<!-- UserMapperMixed.xml -->
+<mapper namespace="com.example.mapper.UserMapperMixed">
+    <!-- 复杂条件查询（动态 SQL） -->
+    <select id="findByCondition" parameterType="com.example.entity.User" resultType="com.example.entity.User">
+        SELECT * FROM user
+        <where>
+            <if test="username != null and username != ''">
+                AND username LIKE '%${username}%'
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+        </where>
+    </select>
+</mapper></code></pre>
+        
+        <h3>5.2 注册混合开发的 Mapper</h3>
+        <p><strong>操作：</strong>在 <code>mybatis-config.xml</code> 中同时注册接口和 XML</p>
+        
+        <pre><code>&lt;mappers&gt;
+    &lt;!-- 注册 Mapper 接口（注解方式） --&gt;
+    &lt;mapper class="com.example.mapper.UserMapperMixed"/&gt;
+    
+    &lt;!-- 注册 Mapper XML（XML 方式） --&gt;
+    &lt;mapper resource="mapper/UserMapperMixed.xml"/&gt;
+&lt;/mappers&gt;</code></pre>
+        
+        <div class="note">
+            <strong>注意：</strong>如果接口和 XML 的 namespace 一致，只需要注册其中一个即可
+        </div>
+        
+        <h2>六、实验总结</h2>
+        <div class="tip">
+            <ul>
+                <li>✅ 掌握注解开发完整语法（@Select、@Insert、@Update、@Delete）</li>
+                <li>✅ 掌握 @Param 注解使用，解决多参数传递问题</li>
+                <li>✅ 理解 #{} 和 ${} 的区别，掌握安全用法</li>
+                <li>✅ 能够演示 SQL 注入攻击与防御</li>
+                <li>✅ 掌握 XML 与注解混合开发</li>
+            </ul>
+        </div>
+        
+        <h2>七、课后作业</h2>
+        <ol>
+            <li>使用注解方式完成用户表的 CRUD 操作</li>
+            <li>演示多参数传递的三种方式（@Param、Map、实体类）</li>
+            <li>编写代码示例，演示 #{} 和 ${} 的区别</li>
+            <li>模拟 SQL 注入攻击，并给出防御方案</li>
+        </ol>
+        
+        <hr style="margin-top: 50px;">
+        <p style="text-align: center; color: #999; font-size: 14px;">
+            Spring Core 教学课程 - 第01章 MyBatis基础与核心组件 - 第3节
+        </p>
+    </div>
+</body>
+</html>

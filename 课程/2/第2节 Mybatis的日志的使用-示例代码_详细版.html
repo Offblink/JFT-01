@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第01章第2节 Mybatis的日志的使用 - 案例（详细版）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; font-size: 28px; }
+        h2 { color: #2980b9; margin: 35px 0 20px 0; padding-left: 15px; border-left: 4px solid #3498db; font-size: 22px; }
+        h3 { color: #16a085; margin: 25px 0 15px 0; font-size: 18px; }
+        h4 { color: #7f8c8d; margin: 20px 0 10px 0; font-size: 16px; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 5px; overflow-x: auto; margin: 15px 0; }
+        code { font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 5px 0; }
+        p { margin: 10px 0; }
+        .section { margin-bottom: 40px; }
+        .example { background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .annotation { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+            <a href="../../index.html">🏠 首页</a>
+            <span>></span>
+            <a href="../../案例/">💻 案例</a>
+            <span>></span>
+            <a href="../../案例/第01章/">第01章 Mybatis与Mybatis-Plus框架基础</a>
+            <span>></span>
+            <span>第2节 Mybatis的日志的使用</span>
+        </div>
+
+        <div class="header">
+            <h1>💻 第01章第2节 Mybatis的日志的使用 - 案例（详细版）</h1>
+            <p>完整代码示例 · 日志配置 · Junit测试 · ApiFox接口测试</p>
+            <div class="badge">⏱ 4学时（理论2 + 实验2）</div>
+        </div>
+
+        <h2>📁 项目完整结构</h2>
+        <pre><code>mybatis-log-demo/
+├── pom.xml                          # Maven 配置文件
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/example/
+│   │   │       ├── entity/          # 实体类包
+│   │   │       │   └── User.java    # 用户实体类
+│   │   │       └── mapper/          # Mapper 接口包
+│   │   │           └── UserMapper.java  # 用户 Mapper 接口
+│   │   └── resources/               # 资源文件目录
+│   │       ├── db.properties        # 数据库配置文件
+│   │       ├── log4j.properties     # Log4j 日志配置文件
+│   │       ├── mybatis-config.xml   # Mybatis 全局配置文件
+│   │       └── mapper/              # Mapper XML 目录
+│   │           └── UserMapper.xml   # 用户 Mapper XML
+│   └── test/
+│       └── java/
+│           └── com/example/
+│               └── UserMapperTest.java  # Junit 测试类
+└── api-test/                        # ApiFox 接口测试配置
+    └── Mybatis测试项目.apifox.json</code></pre>
+
+        <hr>
+
+        <h2>📄 1. pom.xml（添加 Log4j 依赖）</h2>
+
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="
+         http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>mybatis-log-demo</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Mybatis -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.5.13</version>
+        </dependency>
+
+        <!-- MySQL 驱动 -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+
+        <!-- Log4j 日志框架 -->
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+
+        <!-- Junit 测试 -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+</project></code></pre>
+
+        <hr>
+
+        <h2>📄 2. log4j.properties（Log4j 配置文件）</h2>
+
+        <pre><code># 全局日志级别设置
+# DEBUG：打印所有级别日志（开发环境）
+# INFO：只打印 INFO、WARN、ERROR 级别日志（生产环境推荐）
+log4j.rootLogger=DEBUG, stdout, file
+
+# 控制台输出配置
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target=System.out
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+# 输出格式：时间 级别 类名:行号 - 消息
+log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+# 文件输出配置（可选）
+log4j.appender.file=org.apache.log4j.RollingFileAppender
+log4j.appender.file.File=logs/mybatis.log
+log4j.appender.file.MaxFileSize=10MB
+log4j.appender.file.MaxBackupIndex=10
+log4j.appender.file.layout=org.apache.log4j.PatternLayout
+log4j.appender.file.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+# Mybatis 日志配置（打印 SQL 语句）
+log4j.logger.org.apache.ibatis=DEBUG
+log4j.logger.java.sql=DEBUG
+log4j.logger.java.sql.Statement=DEBUG
+log4j.logger.java.sql.PreparedStatement=DEBUG
+log4j.logger.java.sql.ResultSet=DEBUG
+
+# 设置特定包的日志级别（可选）
+log4j.logger.com.example.mapper=TRACE</code></pre>
+
+        <p><strong>配置说明：</strong></p>
+        <ul>
+            <li><code>log4j.rootLogger=DEBUG, stdout, file</code>：全局日志级别为 DEBUG，输出到控制台和文件</li>
+            <li><code>ConsoleAppender</code>：输出到控制台</li>
+            <li><code>RollingFileAppender</code>：输出到文件（自动滚动，超过 10MB 创建新文件）</li>
+            <li><code>ConversionPattern</code>：日志输出格式（时间、级别、类名、行号、消息）</li>
+        </ul>
+
+        <hr>
+
+        <h2>📄 3. mybatis-config.xml（配置 Log4j）</h2>
+
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!-- 引入配置文件 -->
+    <properties resource="db.properties"/>
+
+    <settings>
+        <!-- 使用 Log4j 作为日志实现 -->
+        <setting name="logImpl" value="LOG4J"/>
+
+        <!-- 开启驼峰命名自动映射 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+
+        <!-- 控制台打印 SQL（可选，如果 Log4j 配置正确，不需要此配置） -->
+        <!-- <setting name="logImpl" value="STDOUT_LOGGING"/> -->
+    </settings>
+
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driver}"/>
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.username}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <mappers>
+        <mapper resource="mapper/UserMapper.xml"/>
+    </mappers>
+
+</configuration></code></pre>
+
+        <hr>
+
+        <h2>📄 4. UserMapperTest.java（Junit 测试类）</h2>
+
+        <pre><code>package com.example;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+/**
+ * 用户 Mapper 测试类
+ *
+ * 完整测试 UserMapper 接口的所有方法
+ */
+public class UserMapperTest {
+
+    private InputStream is;
+    private SqlSession session;
+    private UserMapper userMapper;
+
+    /**
+     * 初始化方法（在每个 @Test 方法执行前执行）
+     */
+    @Before
+    public void init() throws IOException {
+        System.out.println("========== 初始化开始 ==========");
+        
+        // 1. 加载配置文件
+        is = Resources.getResourceAsStream("mybatis-config.xml");
+
+        // 2. 创建 SqlSessionFactory
+        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is);
+
+        // 3. 创建 SqlSession（true：自动提交事务）
+        session = factory.openSession(true);
+
+        // 4. 获取 Mapper 代理对象
+        userMapper = session.getMapper(UserMapper.class);
+
+        System.out.println("========== 初始化完成 ==========");
+    }
+
+    /**
+     * 销毁方法（在每个 @Test 方法执行后执行）
+     */
+    @After
+    public void destroy() throws IOException {
+        System.out.println("========== 销毁开始 ==========");
+        
+        // 关闭资源
+        if (session != null) {
+            session.close();
+            System.out.println("SqlSession 已关闭");
+        }
+        if (is != null) {
+            is.close();
+            System.out.println("InputStream 已关闭");
+        }
+
+        System.out.println("========== 销毁完成 ==========");
+    }
+
+    /**
+     * 测试查询所有用户
+     */
+    @Test
+    public void testFindAll() {
+        System.out.println("========== 测试 testFindAll 开始 ==========");
+        
+        // 执行查询
+        List<User> users = userMapper.findAll();
+
+        // 遍历结果
+        System.out.println("查询结果：");
+        for (User user : users) {
+            System.out.println("  " + user);
+        }
+
+        // 断言
+        assert users != null : "用户列表不能为空";
+        assert users.size() > 0 : "用户列表必须有数据";
+
+        System.out.println("========== 测试 testFindAll 完成 ==========");
+    }
+
+    /**
+     * 测试根据 ID 查询用户
+     */
+    @Test
+    public void testFindById() {
+        System.out.println("========== 测试 testFindById 开始 ==========");
+        
+        // 执行查询
+        User user = userMapper.findById(1);
+
+        // 打印结果
+        System.out.println("查询结果：" + user);
+
+        // 断言
+        assert user != null : "用户不能为空";
+        assert user.getId() == 1 : "用户ID必须是1";
+        assert user.getUsername() != null : "用户名不能为空";
+
+        System.out.println("========== 测试 testFindById 完成 ==========");
+    }
+
+    /**
+     * 测试添加用户
+     */
+    @Test
+    public void testAddUser() {
+        System.out.println("========== 测试 testAddUser 开始 ==========");
+        
+        // 创建用户对象
+        User user = new User();
+        user.setUsername("测试用户");
+        user.setPassword("123456");
+        user.setEmail("test@qq.com");
+
+        // 执行添加
+        int rows = userMapper.addUser(user);
+
+        // 打印结果
+        System.out.println("影响行数：" + rows);
+
+        // 断言
+        assert rows > 0 : "添加失败";
+
+        System.out.println("========== 测试 testAddUser 完成 ==========");
+    }
+
+    /**
+     * 测试更新用户
+     */
+    @Test
+    public void testUpdateUser() {
+        System.out.println("========== 测试 testUpdateUser 开始 ==========");
+        
+        // 查询用户
+        User user = userMapper.findById(1);
+
+        // 修改信息
+        user.setUsername("张三（更新）");
+        user.setEmail("zhangsan_updated@qq.com");
+
+        // 执行更新
+        int rows = userMapper.updateUser(user);
+
+        // 打印结果
+        System.out.println("影响行数：" + rows);
+
+        // 断言
+        assert rows > 0 : "更新失败";
+
+        System.out.println("========== 测试 testUpdateUser 完成 ==========");
+    }
+
+    /**
+     * 测试删除用户
+     */
+    @Test
+    public void testDeleteUser() {
+        System.out.println("========== 测试 testDeleteUser 开始 ==========");
+        
+        // 执行删除（删除 ID=6 的用户）
+        int rows = userMapper.deleteUser(6);
+
+        // 打印结果
+        System.out.println("影响行数：" + rows);
+
+        // 断言
+        assert rows > 0 : "删除失败";
+
+        System.out.println("========== 测试 testDeleteUser 完成 ==========");
+    }
+}</code></pre>
+
+        <p><strong>运行结果示例（带日志）：</strong></p>
+        <pre><code>========== 初始化开始 ==========
+2026-07-04 00:30:15 DEBUG JdbcTransaction:137 - Opening JDBC Connection
+2026-07-04 00:30:15 DEBUG PooledDataSource:362 - Created connection 12345678.
+========== 初始化完成 ==========
+========== 测试 testFindAll 开始 ==========
+2026-07-04 00:30:15 DEBUG JdbcTransaction:101 - Setting autocommit to false on JDBC Connection
+2026-07-04 00:30:15 DEBUG findAll:137 - ==>  Preparing: SELECT * FROM user
+2026-07-04 00:30:15 DEBUG findAll:137 - ==> Parameters:
+2026-07-04 00:30:15 DEBUG findAll:137 - <==      Total: 5
+查询结果：
+  User{id=1, username='张三', ...}
+  User{id=2, username='李四', ...}
+  ...
+========== 测试 testFindAll 完成 ==========
+========== 销毁开始 ==========
+2026-07-04 00:30:15 DEBUG JdbcTransaction:101 - Resetting autocommit to true on JDBC Connection
+2026-07-04 00:30:15 DEBUG JdbcTransaction:137 - Closing JDBC Connection
+SqlSession 已关闭
+InputStream 已关闭
+========== 销毁完成 ==========</code></pre>
+
+        <hr>
+
+        <h2>📄 5. ApiFox 接口测试配置（示例）</h2>
+
+        <p><strong>接口1：查询所有用户</strong></p>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>配置项</th>
+                    <th>值</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>接口名称</td>
+                    <td>查询所有用户</td>
+                </tr>
+                <tr>
+                    <td>请求方法</td>
+                    <td>GET</td>
+                </tr>
+                <tr>
+                    <td>接口路径</td>
+                    <td>http://localhost:8080/user/findAll</td>
+                </tr>
+                <tr>
+                    <td>请求参数</td>
+                    <td>无</td>
+                </tr>
+                <tr>
+                    <td>预期响应</td>
+                    <td>JSON 数组，包含用户列表</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>接口2：根据 ID 查询用户</strong></p>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>配置项</th>
+                    <th>值</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>接口名称</td>
+                    <td>根据 ID 查询用户</td>
+                </tr>
+                <tr>
+                    <td>请求方法</td>
+                    <td>GET</td>
+                </tr>
+                <tr>
+                    <td>接口路径</td>
+                    <td>http://localhost:8080/user/findById</td>
+                </tr>
+                <tr>
+                    <td>请求参数</td>
+                    <td>id (Query Parameter，类型：Integer)</td>
+                </tr>
+                <tr>
+                    <td>预期响应</td>
+                    <td>JSON 对象，包含单个用户信息</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p><strong>断言配置示例：</strong></p>
+        <ol>
+            <li>状态码等于 200</li>
+            <li>响应时间小于 1000 ms</li>
+            <li>返回数据不为空</li>
+            <li>用户ID等于请求参数ID</li>
+        </ol>
+
+        <hr>
+
+        <h2>📝 常见问题与解决方案</h2>
+
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>问题</th>
+                    <th>原因</th>
+                    <th>解决方案</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>控制台没有日志输出</td>
+                    <td>log4j.properties 文件未创建或配置错误</td>
+                    <td>检查 log4j.properties 是否在 src/main/resources 目录下；检查配置是否正确</td>
+                </tr>
+                <tr>
+                    <td>日志级别设置不生效</td>
+                    <td>log4j.rootLogger 配置错误</td>
+                    <td>确认 log4j.rootLogger=级别, 输出目标；重启应用</td>
+                </tr>
+                <tr>
+                    <td>Junit 测试报错：ClassNotFoundException</td>
+                    <td>依赖未下载或版本错误</td>
+                    <td>检查 pom.xml，手动执行 mvn clean install</td>
+                </tr>
+                <tr>
+                    <td>ApiFox 请求失败：Connection refused</td>
+                    <td>后端服务未启动</td>
+                    <td>先启动后端服务（如 Tomcat），再发送请求</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2>📝 案例总结</h2>
+        <ul>
+            <li>✅ 掌握 Log4j 日志框架集成与配置</li>
+            <li>✅ 掌握日志级别设置与日志输出查看</li>
+            <li>✅ 掌握 Junit 单元测试编写与运行</li>
+            <li>✅ 掌握 ApiFox 接口测试工具使用</li>
+            <li>✅ 能够运用日志排查 SQL 执行问题</li>
+        </ul>
+
+        <div class="footer">
+            第01章 Mybatis与Mybatis-Plus框架基础 · 第2节 Mybatis的日志的使用 · 4学时（理论2 + 实验2）· 详细版
+        </div>
+    
+    </div>
+</body>
+</html>

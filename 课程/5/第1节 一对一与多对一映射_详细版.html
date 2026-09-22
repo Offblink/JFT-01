@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1节 一对一与多对一映射_详细版 - 详细版 - 第05章 MyBatis关联映射与多表查询</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 10px; font-size: 26px; }
+        .subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+        h2 { color: #2980b9; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 40px; font-size: 21px; }
+        h3 { color: #16a085; margin-top: 30px; font-size: 18px; }
+        h4 { color: #7f8c8d; margin-top: 20px; font-size: 16px; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 18px 20px; border-radius: 5px; overflow-x: auto; line-height: 1.6; }
+        pre code { font-family: 'Consolas', 'Monaco', monospace; font-size: 13.5px; }
+        code { font-family: 'Consolas', 'Monaco', monospace; background: #eef2f5; padding: 2px 6px; border-radius: 3px; color: #c0392b; font-size: 13.5px; }
+        pre code { background: transparent; padding: 0; color: inherit; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .note-title { font-weight: bold; margin-bottom: 6px; }
+        .note .note-title { color: #2471a3; }
+        .warning .note-title { color: #9a7d0a; }
+        .tip .note-title { color: #1e7e34; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; vertical-align: top; }
+        th { background: #3498db; color: white; font-weight: 600; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 6px 0; }
+        .filepath { display: inline-block; background: #2c3e50; color: #7fe3a1; font-family: 'Consolas', 'Monaco', monospace; font-size: 12.5px; padding: 4px 10px; border-radius: 4px; margin: 12px 0 6px; word-break: break-all; }
+        .srcmap { background: #f4f7fa; border: 1px solid #d6e2ef; border-radius: 6px; padding: 14px 18px; margin: 18px 0; }
+        .srcmap ul { margin: 6px 0 0; }
+        .srcmap li { font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; }
+        .badge { display: inline-block; background: #eaf3fb; color: #1a6fa8; border: 1px solid #bcd8ee; border-radius: 4px; font-size: 12px; padding: 1px 8px; margin-right: 6px; }
+        hr { border: none; border-top: 1px solid #e6e6e6; margin-top: 50px; }
+        .footer { text-align: center; color: #999; font-size: 13.5px; margin-top: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+<h1>第05章 第1 一对一与多对一映射 - 详细版</h1>
+<div class="subtitle">课程代码 1960229 · Java框架技术 · 配套项目：SpringSpringMVCMybatis（Spring 4.3.30.RELEASE + MyBatis 3.5.13）</div>
+<h2>一、学习目标</h2>
+<ol>
+<li>分清单条 JOIN（嵌套结果）与嵌套 select 两种关联实现方式</li>
+<li>会用 <code>&lt;association&gt;</code> 完成「员工 → 部门」的多对一映射</li>
+<li>会用 <code>@One</code> + <code>@Results</code> 完成同样的映射（注解版）</li>
+<li>掌握 JOIN 场景下列名冲突的别名处理（<code>e.deptno AS emp_deptno</code>）</li>
+</ol>
+<h2>二、核心知识点</h2>
+<h3>1.1 关系判定：emp 有外键，所以是「多对一」</h3>
+<p>emp 表中有 <code>deptno</code> 外键指向 dept，因此从员工视角看是<strong>多对一</strong>（多个员工对应一个部门）。Java 侧 Emp 里持有一个 <code>Dept dept</code> 对象，映射标签用 <code>&lt;association&gt;</code>（对应属性是单个对象）。</p>
+<span class="badge">java</span><pre><code>public class Emp implements Serializable {
+    private Integer empno;
+    private String ename;
+    private String job;
+    private Date hiredate;
+    private Double sal;
+    private Integer deptno;   // 外键
+
+    private Dept dept;        // 多对一：一个员工属于一个部门
+    private List&lt;Skill&gt; skills;
+}</code></pre>
+<h3>1.2 XML 方案一：嵌套结果（一条 JOIN）</h3>
+<p>一条 LEFT JOIN 把两张表的列都查出来，resultMap 内部逐列声明。<strong>关键点</strong>：两张表都有 <code>deptno</code>，必须给 emp 的列起别名 <code>e.deptno AS emp_deptno</code>，否则映射时无法区分。</p>
+<span class="badge">xml</span><pre><code>&lt;resultMap id="empWithDeptMap" type="com.entity.Emp"&gt;
+    &lt;id property="empno" column="empno"/&gt;
+    &lt;result property="ename" column="ename"/&gt;
+    &lt;result property="job" column="job"/&gt;
+    &lt;result property="sal" column="sal"/&gt;
+    &lt;result property="deptno" column="emp_deptno"/&gt;   &lt;!-- 用别名区分！ --&gt;
+    &lt;association property="dept" javaType="com.entity.Dept"&gt;
+        &lt;id property="deptno" column="deptno"/&gt;
+        &lt;result property="dname" column="dname"/&gt;
+        &lt;result property="loc" column="loc"/&gt;
+    &lt;/association&gt;
+&lt;/resultMap&gt;
+
+&lt;select id="one2oneByXml" parameterType="int" resultMap="empWithDeptMap"&gt;
+    SELECT e.empno, e.ename, e.job, e.sal, e.mgr, e.hiredate, e.comm,
+           e.deptno AS emp_deptno,
+           d.deptno, d.dname, d.loc
+    FROM emp e
+    LEFT JOIN dept d ON e.deptno = d.deptno
+    WHERE e.empno = #{empno}
+&lt;/select&gt;</code></pre>
+<h3>1.3 XML 方案二：嵌套 select（延迟加载）</h3>
+<p>主查询只查 emp，<code>&lt;association&gt;</code> 上用 <code>select</code> 指定子查询、<code>column</code> 指定把哪一列作为子查询参数。配合 <code>lazyLoadingEnabled=true</code>，不访问 <code>getDept()</code> 就不会发子查询。</p>
+<span class="badge">xml</span><pre><code>&lt;resultMap id="empWithDeptSelectMap" type="com.entity.Emp"&gt;
+    &lt;id property="empno" column="empno"/&gt;
+    &lt;result property="ename" column="ename"/&gt;
+    &lt;result property="deptno" column="deptno"/&gt;
+    &lt;association property="dept" javaType="com.entity.Dept"
+                 select="com.chapter05.Chapter05DeptMapper.findById"
+                 column="deptno"/&gt;
+&lt;/resultMap&gt;</code></pre>
+<h3>1.4 注解版：@One 嵌套 select</h3>
+<p>注解版用 <code>@Results</code> 描述映射，用 <code>@One</code> 描述单个关联对象。<code>select</code> 里必须写<strong>接口全限定名</strong>，即 <code>com.chapter05.Chapter05DeptMapper.findById</code>。</p>
+<span class="badge">java</span><pre><code>@Select("SELECT e.empno, e.ename, e.job, e.sal, e.deptno, " +
+        "d.deptno AS d_deptno, d.dname, d.loc " +
+        "FROM emp e LEFT JOIN dept d ON e.deptno = d.deptno " +
+        "WHERE e.empno = #{empno}")
+@Results({
+        @Result(property = "empno",  column = "empno"),
+        @Result(property = "ename",  column = "ename"),
+        @Result(property = "job",    column = "job"),
+        @Result(property = "sal",    column = "sal"),
+        @Result(property = "deptno", column = "deptno"),
+        @Result(property = "dept",   column = "deptno",
+                one = @One(select = "com.chapter05.Chapter05DeptMapper.findById"))
+})
+Emp one2oneByAnn(Integer empno);</code></pre>
+<h3>1.5 「一对一」与「多对一」在 MyBatis 里写法相同</h3>
+<p>这两个概念反映的是<strong>业务语义</strong>（一个员工只有一个部门 / 多个员工共用一个部门），在 MyBatis 的映射层面都表现为「一个对象属性」，都用 <code>&lt;association&gt;</code> / <code>@One</code>。区分它们的意义在于判断「从哪一侧发起查询」。</p>
+<span class="badge">xml</span><pre><code>&lt;!-- 多对一：一次查一批员工，每人带一个部门 --&gt;
+&lt;select id="many2oneByXml" resultMap="empWithDeptMap"&gt;
+    SELECT e.empno, e.ename, e.job, e.sal, e.mgr, e.hiredate, e.comm,
+           e.deptno AS emp_deptno,
+           d.deptno, d.dname, d.loc
+    FROM emp e
+    LEFT JOIN dept d ON e.deptno = d.deptno
+    ORDER BY e.empno
+&lt;/select&gt;</code></pre>
+<h2>三、对照表 / 参数说明</h2>
+<h4>关联映射标签对照</h4>
+<table>
+<thead><tr><th>业务关系</th><th>Java 侧类型</th><th>XML 标签</th><th>注解</th><th>子标签/属性</th></tr></thead>
+<tbody>
+<tr><td>一对一</td><td>单个对象</td><td><code>&lt;association&gt;</code></td><td><code>@One</code></td><td><code>javaType</code></td></tr>
+<tr><td>多对一</td><td>单个对象</td><td><code>&lt;association&gt;</code></td><td><code>@One</code></td><td><code>javaType</code></td></tr>
+<tr><td>一对多</td><td>集合</td><td><code>&lt;collection&gt;</code></td><td><code>@Many</code></td><td><code>ofType</code></td></tr>
+<tr><td>多对多</td><td>集合</td><td><code>&lt;collection&gt;</code></td><td><code>@Many</code></td><td><code>ofType</code> + 中间表</td></tr>
+</tbody>
+</table>
+<h4>两种实现方式对比</h4>
+<table>
+<thead><tr><th>维度</th><th>嵌套结果（JOIN）</th><th>嵌套 select</th></tr></thead>
+<tbody>
+<tr><td>SQL 条数</td><td>1 条</td><td>1 + N 条</td></tr>
+<tr><td>resultMap 写法</td><td>内联子标签声明列映射</td><td><code>select</code> + <code>column</code></td></tr>
+<tr><td>延迟加载</td><td>不支持</td><td>支持</td></tr>
+<tr><td>列名冲突处理</td><td>必须起别名</td><td>不需要</td></tr>
+<tr><td>推荐度</td><td>列表查询首选</td><td>详情/大对象场景</td></tr>
+</tbody>
+</table>
+<h2>四、项目源码对照</h2>
+<div class="srcmap">
+<strong>📁 本章对应项目源码（SpringSpringMVCMybatis）</strong>
+<ul>
+<li>src/main/java/com/chapter05/Chapter05EmpMapper.java</li>
+<li>src/main/java/com/chapter05/Chapter05DeptMapper.java</li>
+<li>src/main/resources/chapter05/mapper/Chapter05EmpMapper.xml</li>
+<li>src/main/resources/chapter05/mapper/Chapter05DeptMapper.xml</li>
+<li>src/main/resources/chapter05/mybatis-config.xml</li>
+<li>src/test/java/com/chapter05/Chapter05Test.java</li>
+</ul>
+</div>
+<span class="filepath">src/main/java/com/chapter05/Chapter05EmpMapper.java</span>
+<span class="badge">java</span><pre><code>package com.chapter05;
+
+import com.entity.Emp;
+import com.entity.Skill;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
+
+public interface Chapter05EmpMapper {
+
+    // ==================== 一对一 ====================
+
+    Emp one2oneByXml(Integer empno);
+
+    @Select("SELECT e.empno, e.ename, e.job, e.sal, e.deptno, " +
+            "d.deptno AS d_deptno, d.dname, d.loc " +
+            "FROM emp e LEFT JOIN dept d ON e.deptno = d.deptno " +
+            "WHERE e.empno = #{empno}")
+    @Results({
+            @Result(property = "empno", column = "empno"),
+            @Result(property = "ename", column = "ename"),
+            @Result(property = "job", column = "job"),
+            @Result(property = "sal", column = "sal"),
+            @Result(property = "deptno", column = "deptno"),
+            @Result(property = "dept", column = "deptno",
+                    one = @One(select = "com.chapter05.Chapter05DeptMapper.findById"))
+    })
+    Emp one2oneByAnn(Integer empno);
+
+    // ==================== 多对一 ====================
+
+    List&lt;Emp&gt; many2oneByXml();
+
+    @Select("SELECT e.empno, e.ename, e.job, e.sal, e.deptno, " +
+            "d.deptno AS d_deptno, d.dname, d.loc " +
+            "FROM emp e LEFT JOIN dept d ON e.deptno = d.deptno")
+    @Results({
+            @Result(property = "empno", column = "empno"),
+            @Result(property = "ename", column = "ename"),
+            @Result(property = "job", column = "job"),
+            @Result(property = "sal", column = "sal"),
+            @Result(property = "deptno", column = "deptno"),
+            @Result(property = "dept", column = "deptno",
+                    one = @One(select = "com.chapter05.Chapter05DeptMapper.findById"))
+    })
+    List&lt;Emp&gt; many2oneByAnn();
+
+    // 多对多部分见第3节
+    Emp many2manyByXml(Integer empno);
+    Emp many2manyByAnn(Integer empno);
+
+    @Select("SELECT s.id, s.name, s.description " +
+            "FROM skill s " +
+            "INNER JOIN emp_skill es ON s.id = es.skill_id " +
+            "WHERE es.empno = #{empno}")
+    List&lt;Skill&gt; selectSkillsByEmpno(@Param("empno") Integer empno);
+
+    @Select("SELECT * FROM emp WHERE deptno = #{deptno}")
+    List&lt;Emp&gt; selectListByDeptno(@Param("deptno") Integer deptno);
+}</code></pre>
+<span class="filepath">src/main/resources/chapter05/mapper/Chapter05EmpMapper.xml</span>
+<span class="badge">xml</span><pre><code>&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+
+&lt;mapper namespace="com.chapter05.Chapter05EmpMapper"&gt;
+
+    &lt;resultMap id="empWithDeptMap" type="com.entity.Emp"&gt;
+        &lt;id property="empno" column="empno"/&gt;
+        &lt;result property="ename" column="ename"/&gt;
+        &lt;result property="job" column="job"/&gt;
+        &lt;result property="mgr" column="mgr"/&gt;
+        &lt;result property="hiredate" column="hiredate"/&gt;
+        &lt;result property="sal" column="sal"/&gt;
+        &lt;result property="comm" column="comm"/&gt;
+        &lt;!-- emp.deptno 起了别名 emp_deptno，避免与 dept.deptno 冲突 --&gt;
+        &lt;result property="deptno" column="emp_deptno"/&gt;
+        &lt;association property="dept" javaType="com.entity.Dept"&gt;
+            &lt;id property="deptno" column="deptno"/&gt;
+            &lt;result property="dname" column="dname"/&gt;
+            &lt;result property="loc" column="loc"/&gt;
+        &lt;/association&gt;
+    &lt;/resultMap&gt;
+
+    &lt;!-- ========== 一对一（XML方式）========== --&gt;
+    &lt;select id="one2oneByXml" parameterType="int" resultMap="empWithDeptMap"&gt;
+        SELECT e.empno, e.ename, e.job, e.sal, e.mgr, e.hiredate, e.comm,
+               e.deptno AS emp_deptno,
+               d.deptno, d.dname, d.loc
+        FROM emp e
+        LEFT JOIN dept d ON e.deptno = d.deptno
+        WHERE e.empno = #{empno}
+    &lt;/select&gt;
+
+    &lt;!-- ========== 多对一（XML方式）========== --&gt;
+    &lt;select id="many2oneByXml" resultMap="empWithDeptMap"&gt;
+        SELECT e.empno, e.ename, e.job, e.sal, e.mgr, e.hiredate, e.comm,
+               e.deptno AS emp_deptno,
+               d.deptno, d.dname, d.loc
+        FROM emp e
+        LEFT JOIN dept d ON e.deptno = d.deptno
+        ORDER BY e.empno
+    &lt;/select&gt;
+
+&lt;/mapper&gt;</code></pre>
+<span class="filepath">src/main/resources/chapter05/mybatis-config.xml</span>
+<span class="badge">xml</span><pre><code>&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+
+&lt;configuration&gt;
+
+    &lt;properties resource="common/db.properties"/&gt;
+
+    &lt;settings&gt;
+        &lt;setting name="logImpl" value="LOG4J"/&gt;
+        &lt;setting name="mapUnderscoreToCamelCase" value="true"/&gt;
+        &lt;setting name="lazyLoadingEnabled" value="true"/&gt;
+        &lt;setting name="aggressiveLazyLoading" value="false"/&gt;
+    &lt;/settings&gt;
+
+    &lt;environments default="development"&gt;
+        &lt;environment id="development"&gt;
+            &lt;transactionManager type="JDBC"/&gt;
+            &lt;dataSource type="POOLED"&gt;
+                &lt;property name="driver" value="${jdbc.driver}"/&gt;
+                &lt;property name="url" value="${jdbc.url}"/&gt;
+                &lt;property name="username" value="${jdbc.username}"/&gt;
+                &lt;property name="password" value="${jdbc.password}"/&gt;
+            &lt;/dataSource&gt;
+        &lt;/environment&gt;
+    &lt;/environments&gt;
+
+    &lt;mappers&gt;
+        &lt;mapper resource="chapter05/mapper/Chapter05EmpMapper.xml"/&gt;
+        &lt;mapper resource="chapter05/mapper/Chapter05DeptMapper.xml"/&gt;
+    &lt;/mappers&gt;
+
+&lt;/configuration&gt;</code></pre>
+<h2>五、运行结果</h2>
+<span class="badge">text</span><pre><code>========== 一对一（XML方式）==========
+知识点：&lt;association&gt; + 嵌套结果映射
+员工：SMITH (编号:7369)
+部门：RESEARCH
+位置：DALLAS
+========== 一对一（注解方式）==========
+知识点：@Results + @One(select = ...) 嵌套 select
+员工：ALLEN (编号:7499)
+部门：SALES
+位置：CHICAGO
+========== 多对一（XML方式）==========
+员工总数：14
+  7369 - SMITH -&gt; RESEARCH
+  7499 - ALLEN -&gt; SALES
+  7521 - WARD -&gt; SALES
+  ...</code></pre>
+<h2>六、注意事项与常见坑</h2>
+<div class="warning">
+<div class="note-title">⚠️ JOIN 时同名外键列必须起别名</div>
+<ul>
+<li>emp 与 dept 都有 <code>deptno</code>，若不写 <code>e.deptno AS emp_deptno</code>，resultMap 无法区分两个 deptno，员工自己的部门号会被部门的部门号覆盖。</li>
+<li>项目 chapter05 的映射正是靠这个别名才正确。</li>
+</ul>
+</div>
+<div class="note">
+<div class="note-title">📌 主键用 &lt;id&gt;，外键关联列用 &lt;result&gt;</div>
+<ul>
+<li><code>empno</code> 是 Emp 的主键 → <code>&lt;id&gt;</code>；</li>
+<li><code>emp_deptno</code> 只是普通列 → <code>&lt;result&gt;</code>。</li>
+<li>关联对象 Dept 内部的 deptno 也是 <code>&lt;id&gt;</code>。</li>
+</ul>
+</div>
+<div class="tip">
+<div class="note-title">✅ 选方案的经验法则</div>
+<ul>
+<li>列表页要展示关联信息 → 嵌套结果（一条 JOIN）。</li>
+<li>详情页、关联对象很大且不总访问 → 嵌套 select + 延迟加载。</li>
+</ul>
+</div>
+<h2>七、小结</h2>
+<div class="tip">
+<div class="note-title">✅ 本节要点</div>
+<ul>
+<li>能根据外键位置判定关系类型，并选对 association / collection</li>
+<li>会写嵌套结果映射，并知道同名外键列必须起别名</li>
+<li>会写嵌套 select 映射（XML 与注解两种）</li>
+<li>知道 @One/@Many 的 select 必须写接口全限定名</li>
+</ul>
+</div>
+        <hr>
+        <p class="footer">Spring Core 教学课程 · 第05章 MyBatis关联映射与多表查询 · 第5-1 节</p>
+    </div>
+</body>
+</html>

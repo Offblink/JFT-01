@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第01章第2节 Mybatis的日志的使用 - 详细版</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; }
+        h2 { color: #2980b9; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 40px; }
+        h3 { color: #16a085; margin-top: 30px; }
+        h4 { color: #7f8c8d; margin-top: 20px; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 5px; overflow-x: auto; }
+        code { font-family: 'Consolas', 'Monaco', monospace; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 8px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第01章第2节 Mybatis的日志的使用 - 详细版</h1>
+        
+        <h2>一、实验目标</h2>
+        <ol>
+            <li><strong>日志配置</strong>：在 Mybatis 项目中集成 Log4j 日志框架</li>
+            <li><strong>日志级别设置</strong>：合理配置日志级别，查看不同详细程度的日志</li>
+            <li><strong>Junit 测试</strong>：编写标准化的单元测试类，完成 CRUD 功能测试</li>
+            <li><strong>ApiFox 测试</strong>：使用 ApiFox 完成接口调试与结果校验</li>
+            <li><strong>AI 辅助</strong>：运用 AI 工具生成测试代码，优化测试流程</li>
+        </ol>
+        
+        <h2>二、实验流程（4学时分解）</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>学时</th>
+                    <th>内容</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>第1学时</td>
+                    <td>日志框架集成与配置</td>
+                    <td>添加依赖、创建配置文件、测试日志输出</td>
+                </tr>
+                <tr>
+                    <td>第2学时</td>
+                    <td>Junit 单元测试编写</td>
+                    <td>创建测试类、编写测试方法、运行测试</td>
+                </tr>
+                <tr>
+                    <td>实验第1学时</td>
+                    <td>ApiFox 接口测试</td>
+                    <td>安装 ApiFox、创建接口、发送请求、查看响应</td>
+                </tr>
+                <tr>
+                    <td>实验第2学时</td>
+                    <td>AI 辅助测试开发</td>
+                    <td>使用 AI 生成测试代码、优化测试流程</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>三、第1学时：日志框架集成与配置详细步骤</h2>
+        
+        <h3>3.1 添加 Log4j 依赖（pom.xml）</h3>
+        <p><strong>操作：</strong>在 <code>pom.xml</code> 中添加 Log4j 依赖</p>
+        
+        <pre><code><!-- Log4j 日志框架 -->
+<dependency>
+    <groupId>log4j</groupId>
+    <artifactId>log4j</artifactId>
+    <version>1.2.17</version>
+</dependency></code></pre>
+        
+        <div class="note">
+            <strong>注意事项：</strong>
+            <ul>
+                <li>如果使用 Mybatis 3.5.x，Log4j 1.2.17 版本兼容性好</li>
+                <li>添加依赖后，右键项目 → <code>Maven → Reload Project</code></li>
+            </ul>
+        </div>
+        
+        <h3>3.2 创建 log4j.properties 配置文件</h3>
+        <p><strong>操作：</strong>在 <code>src/main/resources</code> 目录下创建 <code>log4j.properties</code></p>
+        
+        <pre><code># 全局日志级别设置（DEBUG：打印所有级别日志）
+log4j.rootLogger=DEBUG, stdout
+
+# 控制台输出配置
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target=System.out
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+# Mybatis 日志配置（打印 SQL 语句）
+log4j.logger.org.apache.ibatis=DEBUG
+log4j.logger.java.sql=DEBUG
+log4j.logger.java.sql.Statement=DEBUG
+log4j.logger.java.sql.PreparedStatement=DEBUG
+log4j.logger.java.sql.ResultSet=DEBUG</code></pre>
+        
+        <p><strong>配置说明：</strong></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>配置项</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>log4j.rootLogger</td>
+                    <td>全局日志级别（DEBUG、INFO、WARN、ERROR）</td>
+                </tr>
+                <tr>
+                    <td>log4j.appender.stdout</td>
+                    <td>输出到控制台</td>
+                </tr>
+                <tr>
+                    <td>ConversionPattern</td>
+                    <td>日志输出格式（时间、级别、类名、行号、消息）</td>
+                </tr>
+                <tr>
+                    <td>log4j.logger.org.apache.ibatis</td>
+                    <td>Mybatis 日志级别（打印 SQL 语句）</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h3>3.3 配置 mybatis-config.xml（启用 Log4j）</h3>
+        <p><strong>操作：</strong>在 <code>mybatis-config.xml</code> 中添加 <code>&lt;settings&gt;</code> 配置</p>
+        
+        <pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+&lt;configuration&gt;
+
+    &lt;!-- 引入配置文件 --&gt;
+    &lt;properties resource="db.properties"/&gt;
+
+    &lt;!-- 全局设置 --&gt;
+    &lt;settings&gt;
+        &lt;!-- 使用 Log4j 作为日志实现 --&gt;
+        &lt;setting name="logImpl" value="LOG4J"/&gt;
+        
+        &lt;!-- 开启驼峰命名自动映射 --&gt;
+        &lt;setting name="mapUnderscoreToCamelCase" value="true"/&gt;
+    &lt;/settings&gt;
+
+    &lt;!-- 环境配置 --&gt;
+    &lt;environments default="development"&gt;
+        &lt;environment id="development"&gt;
+            &lt;transactionManager type="JDBC"/&gt;
+            &lt;dataSource type="POOLED"&gt;
+                &lt;property name="driver" value="${jdbc.driver}"/&gt;
+                &lt;property name="url" value="${jdbc.url}"/&gt;
+                &lt;property name="username" value="${jdbc.username}"/&gt;
+                &lt;property name="password" value="${jdbc.password}"/&gt;
+            &lt;/dataSource&gt;
+        &lt;/environment&gt;
+    &lt;/environments&gt;
+
+    &lt;!-- 注册 Mapper --&gt;
+    &lt;mappers&gt;
+        &lt;mapper resource="mapper/UserMapper.xml"/&gt;
+    &lt;/mappers&gt;
+
+&lt;/configuration&gt;</code></pre>
+        
+        <h3>3.4 运行程序，查看日志输出</h3>
+        <p><strong>操作：</strong>运行测试类，查看控制台日志输出</p>
+        
+        <p><strong>预期输出：</strong></p>
+        <pre><code>2026-07-04 00:15:23 DEBUG JdbcTransaction:137 - Opening JDBC Connection
+2026-07-04 00:15:23 DEBUG PooledDataSource:362 - Created connection 12345678.
+2026-07-04 00:15:23 DEBUG JdbcTransaction:101 - Setting autocommit to false on JDBC Connection
+2026-07-04 00:15:23 DEBUG findAll:137 - ==>  Preparing: SELECT * FROM user
+2026-07-04 00:15:23 DEBUG findAll:137 - ==> Parameters:
+2026-07-04 00:15:23 DEBUG findAll:137 - <==      Total: 5
+User{id=1, username='张三', ...}
+User{id=2, username='李四', ...}
+...</code></pre>
+        
+        <p><strong>日志解读：</strong></p>
+        <ul>
+            <li><code>Opening JDBC Connection</code>：打开数据库连接</li>
+            <li><code>Created connection</code>：创建连接（连接池）</li>
+            <li><code>==>  Preparing:</code>：预编译 SQL 语句</li>
+            <li><code>==> Parameters:</code>：SQL 参数</li>
+            <li><code><==      Total:</code>：返回记录数</li>
+        </ul>
+        
+        <h2>四、第2学时：Junit 单元测试编写详细步骤</h2>
+        
+        <h3>4.1 创建标准化测试类</h3>
+        <p><strong>操作：</strong>在 <code>src/test/java/com/example</code> 目录下创建 <code>UserMapperTest.java</code></p>
+        
+        <pre><code>package com.example;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+/**
+ * 用户 Mapper 测试类
+ * 测试 UserMapper 接口的所有方法
+ */
+public class UserMapperTest {
+
+    private InputStream is;
+    private SqlSession session;
+    private UserMapper userMapper;
+
+    /**
+     * 初始化方法（在每个 @Test 方法执行前执行）
+     */
+    @Before
+    public void init() throws IOException {
+        System.out.println("初始化方法执行...");
+        
+        // 1. 加载配置文件
+        is = Resources.getResourceAsStream("mybatis-config.xml");
+
+        // 2. 创建 SqlSessionFactory
+        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is);
+
+        // 3. 创建 SqlSession（true：自动提交事务）
+        session = factory.openSession(true);
+
+        // 4. 获取 Mapper 代理对象
+        userMapper = session.getMapper(UserMapper.class);
+    }
+
+    /**
+     * 销毁方法（在每个 @Test 方法执行后执行）
+     */
+    @After
+    public void destroy() throws IOException {
+        System.out.println("销毁方法执行...");
+        
+        // 关闭资源
+        if (session != null) {
+            session.close();
+        }
+        if (is != null) {
+            is.close();
+        }
+    }
+
+    /**
+     * 测试查询所有用户
+     */
+    @Test
+    public void testFindAll() {
+        System.out.println("testFindAll 方法执行...");
+        
+        // 执行查询
+        List<User> users = userMapper.findAll();
+
+        // 遍历结果
+        for (User user : users) {
+            System.out.println(user);
+        }
+
+        // 断言：用户列表不能为空
+        assert users != null : "用户列表不能为空";
+        assert users.size() > 0 : "用户列表必须有数据";
+    }
+
+    /**
+     * 测试根据 ID 查询用户
+     */
+    @Test
+    public void testFindById() {
+        System.out.println("testFindById 方法执行...");
+        
+        // 执行查询
+        User user = userMapper.findById(1);
+
+        // 打印结果
+        System.out.println(user);
+
+        // 断言
+        assert user != null : "用户不能为空";
+        assert user.getId() == 1 : "用户ID必须是1";
+    }
+}</code></pre>
+        
+        <h3>4.2 运行测试方法</h3>
+        <p><strong>操作：</strong></p>
+        <ol>
+            <li>右键 <code>testFindAll()</code> 方法</li>
+            <li>选择 <code>Run 'testFindAll()'</code></li>
+            <li>查看控制台输出和日志</li>
+        </ol>
+        
+        <p><strong>运行结果：</strong></p>
+        <pre><code>初始化方法执行...
+testFindAll 方法执行...
+2026-07-04 00:20:15 DEBUG JdbcTransaction:137 - Opening JDBC Connection
+...
+User{id=1, username='张三', ...}
+User{id=2, username='李四', ...}
+销毁方法执行...</code></pre>
+        
+        <p><strong>执行顺序：</strong></p>
+        <ol>
+            <li><code>@Before</code> 方法（init）执行</li>
+            <li><code>@Test</code> 方法（testFindAll）执行</li>
+            <li><code>@After</code> 方法（destroy）执行</li>
+        </ol>
+        
+        <h2>五、实验第1学时：ApiFox 接口测试详细步骤</h2>
+        
+        <h3>5.1 下载并安装 ApiFox</h3>
+        <ol>
+            <li>访问 ApiFox 官网：<code>https://www.apifox.cn/</code></li>
+            <li>点击 <code>下载</code>，选择 Windows 版本</li>
+            <li>下载完成后，双击安装包，按提示安装</li>
+            <li>安装完成后，打开 ApiFox，注册/登录账号</li>
+        </ol>
+        
+        <h3>5.2 创建项目与接口</h3>
+        <ol>
+            <li>点击 <code>新建项目</code>，填写项目名称：<code>Mybatis测试项目</code></li>
+            <li>点击 <code>新建接口</code>，填写接口信息：
+                <ul>
+                    <li>接口名称：<code>查询所有用户</code></li>
+                    <li>请求方法：<code>GET</code></li>
+                    <li>接口路径：<code>http://localhost:8080/user/findAll</code></li>
+                </ul>
+            </li>
+            <li>点击 <code>保存</code></li>
+        </ol>
+        
+        <h3>5.3 发送请求，查看响应</h3>
+        <ol>
+            <li>点击 <code>发送</code> 按钮</li>
+            <li>查看响应结果（右侧面板）：
+                <ul>
+                    <li>状态码：<code>200 OK</code></li>
+                    <li>响应时间：<code>123 ms</code></li>
+                    <li>响应数据（JSON格式）</li>
+                </ul>
+            </li>
+        </ol>
+        
+        <pre><code>{
+  "code": 200,
+  "message": "查询成功",
+  "data": [
+    {
+      "id": 1,
+      "username": "张三",
+      "email": "zhangsan@qq.com"
+    },
+    {
+      "id": 2,
+      "username": "李四",
+      "email": "lisi@qq.com"
+    }
+  ]
+}</code></pre>
+        
+        <h3>5.4 配置断言（自动验证响应）</h3>
+        <ol>
+            <li>在接口编辑页面，点击 <code>断言</code> 选项卡</li>
+            <li>添加断言规则：
+                <ul>
+                    <li>状态码等于 200</li>
+                    <li>响应时间小于 1000 ms</li>
+                    <li>返回数据不为空</li>
+                </ul>
+            </li>
+            <li>保存断言规则</li>
+            <li>再次发送请求，查看断言结果</li>
+        </ol>
+        
+        <h2>六、实验第2学时：AI 辅助测试开发</h2>
+        
+        <h3>6.1 使用通义灵码生成测试代码</h3>
+        <ol>
+            <li>打开测试类 <code>UserMapperTest.java</code></li>
+            <li>在类中输入注释：</li>
+        </ol>
+        
+        <pre><code>// Test method for adding user</code></pre>
+        
+        <ol start="2">
+            <li>按 <code>Enter</code>，通义灵码会自动生成测试方法</li>
+        </ol>
+        
+        <pre><code>@Test
+public void testAddUser() {
+    User user = new User();
+    user.setUsername("测试用户");
+    user.setPassword("123456");
+    user.setEmail("test@qq.com");
+    
+    int rows = userMapper.addUser(user);
+    
+    assert rows > 0 : "添加失败";
+    System.out.println("添加成功，影响行数：" + rows);
+}</code></pre>
+        
+        <h3>6.2 使用 AI 优化测试代码</h3>
+        <ol>
+            <li>选中测试代码</li>
+            <li>右键 → <code>通义灵码 → 优化代码</code></li>
+            <li>AI 会给出优化建议（如添加注释、简化逻辑、增加断言等）</li>
+        </ol>
+        
+        <h2>七、实验总结</h2>
+        <div class="tip">
+            <ul>
+                <li>✅ 完成 Log4j 日志框架集成与配置</li>
+                <li>✅ 掌握日志级别设置与日志输出查看</li>
+                <li>✅ 掌握 Junit 单元测试编写与运行</li>
+                <li>✅ 掌握 ApiFox 接口测试工具使用</li>
+                <li>✅ 能够运用 AI 工具生成和优化测试代码</li>
+            </ul>
+        </div>
+        
+        <h2>八、课后作业</h2>
+        <ol>
+            <li>完善项目日志配置，尝试不同日志级别（DEBUG、INFO、WARN、ERROR）</li>
+            <li>编写全套单元测试代码（CRUD 所有方法）</li>
+            <li>使用 ApiFox 完成完整接口测试流程</li>
+            <li>撰写测试日志与问题排查总结报告</li>
+        </ol>
+        
+        <hr style="margin-top: 50px;">
+        <p style="text-align: center; color: #999; font-size: 14px;">
+            Spring Core 教学课程 - 第01章 MyBatis基础与核心组件 - 第2节
+        </p>
+    </div>
+</body>
+</html>

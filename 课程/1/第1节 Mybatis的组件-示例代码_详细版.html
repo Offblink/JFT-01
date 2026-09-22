@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第01章第1节 Mybatis的组件 - 案例（详细版）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; font-size: 28px; }
+        h2 { color: #2980b9; margin: 35px 0 20px 0; padding-left: 15px; border-left: 4px solid #3498db; font-size: 22px; }
+        h3 { color: #16a085; margin: 25px 0 15px 0; font-size: 18px; }
+        h4 { color: #7f8c8d; margin: 20px 0 10px 0; font-size: 16px; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 5px; overflow-x: auto; margin: 15px 0; }
+        code { font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 5px 0; }
+        p { margin: 10px 0; }
+        .section { margin-bottom: 40px; }
+        .example { background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .annotation { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+            <a href="../../index.html">🏠 首页</a>
+            <span>></span>
+            <a href="../../案例/">💻 案例</a>
+            <span>></span>
+            <a href="../../案例/第01章/">第01章 Mybatis与Mybatis-Plus框架基础</a>
+            <span>></span>
+            <span>第1节 Mybatis的组件</span>
+        </div>
+
+        <div class="header">
+            <h1>💻 第01章第1节 Mybatis的组件 - 案例（详细版）</h1>
+            <p>完整代码示例 · 数据库脚本 · 运行结果 · 问题排查</p>
+            <div class="badge">⏱ 6学时（理论4 + 实验2）</div>
+        </div>
+
+        <h2>📁 项目完整结构</h2>
+        <pre><code>mybatis-demo/
+├── pom.xml                          # Maven 配置文件
+├── README.md                        # 项目说明文档
+├── sql/
+│   └── mybatis_db.sql              # 数据库初始化脚本
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/example/
+│   │   │       ├── entity/          # 实体类包
+│   │   │       │   └── User.java    # 用户实体类
+│   │   │       └── mapper/          # Mapper 接口包
+│   │   │           └── UserMapper.java  # 用户 Mapper 接口
+│   │   └── resources/               # 资源文件目录
+│   │       ├── db.properties        # 数据库配置文件
+│   │       ├── mybatis-config.xml   # Mybatis 全局配置文件
+│   │       └── mapper/              # Mapper XML 目录
+│   │           └── UserMapper.xml   # 用户 Mapper XML
+│   └── test/
+│       └── java/
+│           └── com/example/
+│               └── MybatisTest.java # 测试类
+└── 案例说明.txt                      # 本文件说明</code></pre>
+
+        <hr>
+
+        <h2>📄 1. 数据库初始化脚本（mybatis_db.sql）</h2>
+
+        <pre><code>-- 创建数据库
+CREATE DATABASE IF NOT EXISTS mybatis_db DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- 使用数据库
+USE mybatis_db;
+
+-- 删除表（如果存在）
+DROP TABLE IF EXISTS user;
+
+-- 创建用户表
+CREATE TABLE user (
+    id INT(11) PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID',
+    username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
+    password VARCHAR(50) NOT NULL COMMENT '密码',
+    email VARCHAR(100) COMMENT '邮箱',
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+-- 插入测试数据
+INSERT INTO user (username, password, email) VALUES
+('张三', '123456', 'zhangsan@qq.com'),
+('李四', 'abcdef', 'lisi@qq.com'),
+('王五', '111111', 'wangwu@qq.com'),
+('赵六', '222222', 'zhaoliu@qq.com'),
+('钱七', '333333', 'qianqi@qq.com');
+
+-- 查询验证
+SELECT * FROM user;</code></pre>
+
+        <p><strong>执行步骤：</strong></p>
+        <ol>
+            <li>打开 MySQL 客户端（如 Navicat、SQLyog、或 CMD）</li>
+            <li>复制上述 SQL 脚本</li>
+            <li>执行脚本，创建数据库和表</li>
+            <li>验证数据：<code>SELECT * FROM mybatis_db.user;</code></li>
+        </ol>
+
+        <hr>
+
+        <h2>📄 2. pom.xml（Maven 配置文件）</h2>
+
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="
+         http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 项目坐标 -->
+    <groupId>com.example</groupId>
+    <artifactId>mybatis-demo</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <!-- 项目属性 -->
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <!-- 依赖管理 -->
+    <dependencies>
+        <!-- Mybatis 核心依赖 -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.5.13</version>
+        </dependency>
+
+        <!-- MySQL 驱动依赖 -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+
+        <!-- Junit 测试依赖 -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Lombok（可选，简化实体类代码） -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <!-- 构建配置 -->
+    <build>
+        <plugins>
+            <!-- 编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project></code></pre>
+
+        <p><strong>依赖说明：</strong></p>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>依赖</th>
+                    <th>版本</th>
+                    <th>作用</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>mybatis</td>
+                    <td>3.5.13</td>
+                    <td>Mybatis 核心框架</td>
+                </tr>
+                <tr>
+                    <td>mysql-connector-java</td>
+                    <td>8.0.33</td>
+                    <td>MySQL 数据库驱动</td>
+                </tr>
+                <tr>
+                    <td>junit</td>
+                    <td>4.13.2</td>
+                    <td>单元测试框架</td>
+                </tr>
+                <tr>
+                    <td>lombok</td>
+                    <td>1.18.30</td>
+                    <td>简化实体类（自动生成 getter/setter/toString）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2>📄 3. 实体类（User.java）</h2>
+
+        <pre><code>package com.example.entity;
+
+import java.io.Serializable;
+import java.util.Date;
+
+/**
+ * 用户实体类
+ * 对应数据库表：user
+ *
+ *  implements Serializable：实现序列化接口（可选，但推荐）
+ *  用于分布式环境、缓存、网络传输等场景
+ */
+public class User implements Serializable {
+
+    // 字段（对应数据库表的列）
+    private Integer id;       // 用户ID（对应 user.id）
+    private String username;  // 用户名（对应 user.username）
+    private String password;  // 密码（对应 user.password）
+    private String email;     // 邮箱（对应 user.email）
+    private Date createTime;  // 创建时间（对应 user.create_time）
+    private Date updateTime;  // 更新时间（对应 user.update_time）
+
+    // 构造方法（必须有无参构造，Mybatis 反射创建对象需要）
+    public User() {
+    }
+
+    public User(String username, String password, String email) {
+        this.username = username;
+        this.password = password;
+        this.email = email;
+    }
+
+    // getter 和 setter 方法（必须有，否则 Mybatis 无法封装数据）
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    public Date getUpdateTime() {
+        return updateTime;
+    }
+
+    public void setUpdateTime(Date updateTime) {
+        this.updateTime = updateTime;
+    }
+
+    // toString 方法（方便调试和日志输出）
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", email='" + email + '\'' +
+                ", createTime=" + createTime +
+                ", updateTime=" + updateTime +
+                '}';
+    }
+}</code></pre>
+
+        <p><strong>实体类编写规范：</strong></p>
+        <ul>
+            <li>✅ 实现 <code>Serializable</code> 接口（推荐）</li>
+            <li>✅ 提供无参构造方法（必须）</li>
+            <li>✅ 提供 getter 和 setter 方法（必须）</li>
+            <li>✅ 重写 <code>toString()</code> 方法（推荐，方便调试）</li>
+            <li>✅ 字段名与数据库列名一致（或配置驼峰命名自动映射）</li>
+        </ul>
+
+        <hr>
+
+        <h2>📄 4. Mapper 接口（UserMapper.java）</h2>
+
+        <pre><code>package com.example.mapper;
+
+import com.example.entity.User;
+import java.util.List;
+
+/**
+ * 用户 Mapper 接口
+ *
+ * 对应 Mapper XML 文件：UserMapper.xml
+ * Mybatis 会自动生成该接口的代理对象
+ */
+public interface UserMapper {
+
+    /**
+     * 查询所有用户
+     * @return 用户列表
+     *
+     * 对应 UserMapper.xml 中的：
+     * &lt;select id="findAll" resultType="com.example.entity.User"&gt;
+     */
+    List<User> findAll();
+
+    /**
+     * 根据 ID 查询用户
+     * @param id 用户ID
+     * @return 用户对象
+     *
+     * 对应 UserMapper.xml 中的：
+     * &lt;select id="findById" parameterType="int" resultType="com.example.entity.User"&gt;
+     */
+    User findById(Integer id);
+
+    /**
+     * 添加用户
+     * @param user 用户对象
+     * @return 影响行数
+     *
+     * 对应 UserMapper.xml 中的：
+     * &lt;insert id="addUser" parameterType="com.example.entity.User"&gt;
+     */
+    int addUser(User user);
+
+    /**
+     * 更新用户
+     * @param user 用户对象
+     * @return 影响行数
+     *
+     * 对应 UserMapper.xml 中的：
+     * &lt;update id="updateUser" parameterType="com.example.entity.User"&gt;
+     */
+    int updateUser(User user);
+
+    /**
+     * 删除用户
+     * @param id 用户ID
+     * @return 影响行数
+     *
+     * 对应 UserMapper.xml 中的：
+     * &lt;delete id="deleteUser" parameterType="int"&gt;
+     */
+    int deleteUser(Integer id);
+}</code></pre>
+
+        <p><strong>Mapper 接口编写规范：</strong></p>
+        <ul>
+            <li>✅ 接口方法名必须与 Mapper XML 中的 SQL 语句 id 一致</li>
+            <li>✅ 返回值类型必须与 Mapper XML 中的 resultType 一致</li>
+            <li>✅ 参数类型必须与 Mapper XML 中的 parameterType 一致</li>
+            <li>✅ 包名 + 接口名 = Mapper XML 中的 namespace</li>
+        </ul>
+
+        <hr>
+
+        <h2>📄 5. Mapper XML（UserMapper.xml）</h2>
+
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+    namespace：命名空间
+    必须对应 Mapper 接口的全限定名（包名 + 接口名）
+-->
+<mapper namespace="com.example.mapper.UserMapper">
+
+    <!--
+        查询所有用户
+        id：唯一标识，对应 Mapper 接口的方法名
+        resultType：返回值类型（实体类的全限定名）
+    -->
+    <select id="findAll" resultType="com.example.entity.User">
+        SELECT
+            id,
+            username,
+            password,
+            email,
+            create_time AS createTime,
+            update_time AS updateTime
+        FROM user
+    </select>
+
+    <!--
+        根据 ID 查询用户
+        id：对应 Mapper 接口的 findById 方法
+        parameterType：参数类型（可选，Mybatis 可以自动推断）
+        resultType：返回值类型
+    -->
+    <select id="findById" parameterType="int" resultType="com.example.entity.User">
+        SELECT
+            id,
+            username,
+            password,
+            email,
+            create_time AS createTime,
+            update_time AS updateTime
+        FROM user
+        WHERE id = #{id}
+    </select>
+
+    <!--
+        添加用户
+        id：对应 Mapper 接口的 addUser 方法
+        parameterType：参数类型（User 对象）
+    -->
+    <insert id="addUser" parameterType="com.example.entity.User">
+        INSERT INTO user (username, password, email)
+        VALUES (#{username}, #{password}, #{email})
+    </insert>
+
+    <!--
+        更新用户
+        id：对应 Mapper 接口的 updateUser 方法
+        parameterType：参数类型（User 对象）
+    -->
+    <update id="updateUser" parameterType="com.example.entity.User">
+        UPDATE user
+        SET username = #{username},
+            password = #{password},
+            email = #{email}
+        WHERE id = #{id}
+    </update>
+
+    <!--
+        删除用户
+        id：对应 Mapper 接口的 deleteUser 方法
+        parameterType：参数类型（Integer）
+    -->
+    <delete id="deleteUser" parameterType="int">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+</mapper></code></pre>
+
+        <p><strong>Mapper XML 编写规范：</strong></p>
+        <ul>
+            <li>✅ namespace 必须等于 Mapper 接口的全限定名</li>
+            <li>✅ SQL 语句的 id 必须等于 Mapper 接口的方法名</li>
+            <li>✅ parameterType 和 resultType 必须正确配置</li>
+            <li>✅ SQL 语句中的参数使用 <code>#{...}</code> 占位符</li>
+            <li>✅ 数据库列名与实体类字段名不一致时，使用别名（AS）或 ResultMap 映射</li>
+        </ul>
+
+        <hr>
+
+        <h2>📄 6. 数据库配置（db.properties）</h2>
+
+        <pre><code># 数据库驱动（MySQL 8.x 使用 com.mysql.cj.jdbc.Driver）
+jdbc.driver=com.mysql.cj.jdbc.Driver
+
+# 数据库连接 URL
+# useSSL=false：不使用 SSL 加密（开发环境）
+# serverTimezone=UTC：设置时区（解决时区错误）
+# characterEncoding=utf8：设置字符编码
+# useUnicode=true：启用 Unicode 编码
+jdbc.url=jdbc:mysql://localhost:3306/mybatis_db?useSSL=false&serverTimezone=UTC&characterEncoding=utf8&useUnicode=true
+
+# 数据库用户名（修改为你的用户名）
+jdbc.username=root
+
+# 数据库密码（修改为你的密码）
+jdbc.password=123456</code></pre>
+
+        <p><strong>配置说明：</strong></p>
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>参数</th>
+                    <th>说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>useSSL</td>
+                    <td>是否使用 SSL 加密（开发环境设为 false）</td>
+                </tr>
+                <tr>
+                    <td>serverTimezone</td>
+                    <td>服务器时区（解决时区错误，推荐 UTC 或 Asia/Shanghai）</td>
+                </tr>
+                <tr>
+                    <td>characterEncoding</td>
+                    <td>字符编码（推荐使用 utf8 或 utf8mb4）</td>
+                </tr>
+                <tr>
+                    <td>useUnicode</td>
+                    <td>是否启用 Unicode 编码（推荐 true）</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2>📄 7. Mybatis 全局配置（mybatis-config.xml）</h2>
+
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!-- 引入外部配置文件 -->
+    <properties resource="db.properties"/>
+
+    <!-- 全局设置 -->
+    <settings>
+        <!-- 开启驼峰命名自动映射（数据库 create_time → 实体类 createTime） -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+
+        <!-- 控制台打印 SQL 语句（调试用） -->
+        <setting name="logImpl" value="STDOUT_LOGGING"/>
+
+        <!-- 开启二级缓存（默认开启，可以不用配置） -->
+        <setting name="cacheEnabled" value="true"/>
+    </settings>
+
+    <!-- 环境配置 -->
+    <environments default="development">
+        <environment id="development">
+            <!-- 事务管理器（JDBC：使用 JDBC 事务管理） -->
+            <transactionManager type="JDBC"/>
+
+            <!-- 数据源（POOLED：使用连接池） -->
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driver}"/>
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.username}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!-- 注册 Mapper -->
+    <mappers>
+        <!-- 注册 UserMapper.xml -->
+        <mapper resource="mapper/UserMapper.xml"/>
+    </mappers>
+
+</configuration></code></pre>
+
+        <p><strong>配置说明：</strong></p>
+        <ul>
+            <li><code>&lt;properties&gt;</code>：引入外部配置文件（db.properties）</li>
+            <li><code>&lt;settings&gt;</code>：全局参数设置
+                <ul>
+                    <li><code>mapUnderscoreToCamelCase</code>：驼峰命名自动映射</li>
+                    <li><code>logImpl</code>：日志实现（STDOUT_LOGGING：控制台打印）</li>
+                    <li><code>cacheEnabled</code>：二级缓存开关</li>
+                </ul>
+            </li>
+            <li><code>&lt;environments&gt;</code>：环境配置（可以配置多个环境）</li>
+            <li><code>&lt;mappers&gt;</code>：注册 Mapper XML 文件</li>
+        </ul>
+
+        <hr>
+
+        <h2>📄 8. 测试类（MybatisTest.java）</h2>
+
+        <pre><code>package com.example;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * Mybatis 测试类
+ *
+ * 使用 @Before 和 @After 注解优化代码
+ */
+public class MybatisTest {
+
+    private InputStream is;
+    private SqlSessionFactory factory;
+    private SqlSession session;
+    private UserMapper userMapper;
+
+    /**
+     * 初始化方法（在每个测试方法执行前执行）
+     */
+    @Before
+    public void init() throws IOException {
+        // 1. 加载配置文件
+        is = Resources.getResourceAsStream("mybatis-config.xml");
+
+        // 2. 创建 SqlSessionFactory
+        factory = new SqlSessionFactoryBuilder().build(is);
+
+        // 3. 创建 SqlSession
+        session = factory.openSession(true);  // true：自动提交事务
+
+        // 4. 获取 Mapper 代理对象
+        userMapper = session.getMapper(UserMapper.class);
+    }
+
+    /**
+     * 销毁方法（在每个测试方法执行后执行）
+     */
+    @After
+    public void destroy() throws IOException {
+        // 关闭资源
+        if (session != null) {
+            session.close();
+        }
+        if (is != null) {
+            is.close();
+        }
+    }
+
+    /**
+     * 测试查询所有用户
+     */
+    @Test
+    public void testFindAll() {
+        // 执行查询
+        List<User> users = userMapper.findAll();
+
+        // 遍历结果
+        for (User user : users) {
+            System.out.println(user);
+        }
+
+        // 断言（可选）
+        assert users.size() > 0 : "用户列表不能为空";
+    }
+
+    /**
+     * 测试根据 ID 查询用户
+     */
+    @Test
+    public void testFindById() {
+        // 执行查询
+        User user = userMapper.findById(1);
+
+        // 打印结果
+        System.out.println(user);
+
+        // 断言
+        assert user != null : "用户不能为空";
+        assert user.getId() == 1 : "用户ID必须是1";
+    }
+
+    /**
+     * 测试添加用户
+     */
+    @Test
+    public void testAddUser() {
+        // 创建用户对象
+        User user = new User();
+        user.setUsername("测试用户");
+        user.setPassword("123456");
+        user.setEmail("test@qq.com");
+
+        // 执行添加
+        int rows = userMapper.addUser(user);
+
+        // 打印结果
+        System.out.println("影响行数：" + rows);
+
+        // 断言
+        assert rows > 0 : "添加失败";
+    }
+
+    /**
+     * 测试更新用户
+     */
+    @Test
+    public void testUpdateUser() {
+        // 查询用户
+        User user = userMapper.findById(1);
+
+        // 修改信息
+        user.setUsername("张三更新");
+        user.setEmail("zhangsan_new@qq.com");
+
+        // 执行更新
+        int rows = userMapper.updateUser(user);
+
+        // 打印结果
+        System.out.println("影响行数：" + rows);
+
+        // 断言
+        assert rows > 0 : "更新失败";
+    }
+
+    /**
+     * 测试删除用户
+     */
+    @Test
+    public void testDeleteUser() {
+        // 执行删除
+        int rows = userMapper.deleteUser(6);
+
+        // 打印结果
+        System.out.println("影响行数：" + rows);
+
+        // 断言
+        assert rows > 0 : "删除失败";
+    }
+}</code></pre>
+
+        <p><strong>测试类编写规范：</strong></p>
+        <ul>
+            <li>✅ 使用 <code>@Before</code> 注解初始化资源（每个测试方法执行前执行）</li>
+            <li>✅ 使用 <code>@After</code> 注解关闭资源（每个测试方法执行后执行）</li>
+            <li>✅ 使用 <code>factory.openSession(true)</code> 开启自动提交事务</li>
+            <li>✅ 使用断言（assert）验证测试结果</li>
+        </ul>
+
+        <hr>
+
+        <h2>🚀 9. 运行结果示例</h2>
+
+        <p><strong>testFindAll() 运行结果：</strong></p>
+        <pre><code>==>  Preparing: SELECT id, username, password, email, create_time AS createTime, update_time AS updateTime FROM user
+==> Parameters:
+<==      Total: 5
+User{id=1, username='张三', password='123456', email='zhangsan@qq.com', createTime=Fri Jul 03 23:48:12 CST 2026, updateTime=Fri Jul 03 23:48:12 CST 2026}
+User{id=2, username='李四', password='abcdef', email='lisi@qq.com', createTime=Fri Jul 03 23:48:12 CST 2026, updateTime=Fri Jul 03 23:48:12 CST 2026}
+User{id=3, username='王五', password='111111', email='wangwu@qq.com', createTime=Fri Jul 03 23:48:12 CST 2026, updateTime=Fri Jul 03 23:48:12 CST 2026}
+User{id=4, username='赵六', password='222222', email='zhaoliu@qq.com', createTime=Fri Jul 03 23:48:12 CST 2026, updateTime=Fri Jul 03 23:48:12 CST 2026}
+User{id=5, username='钱七', password='333333', email='qianqi@qq.com', createTime=Fri Jul 03 23:48:12 CST 2026, updateTime=Fri Jul 03 23:48:12 CST 2026}</code></pre>
+
+        <hr>
+
+        <h2>📝 10. 常见问题与解决方案</h2>
+
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>问题</th>
+                    <th>原因</th>
+                    <th>解决方案</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ClassNotFoundException: com.mysql.cj.jdbc.Driver</td>
+                    <td>MySQL 驱动依赖未下载或版本错误</td>
+                    <td>检查 pom.xml，确认 mysql-connector-java 依赖已添加，手动执行 mvn clean install</td>
+                </tr>
+                <tr>
+                    <td>SQLException: The server time zone value 'XXX' is unrecognized</td>
+                    <td>时区错误</td>
+                    <td>在 db.properties 的 jdbc.url 中添加 serverTimezone=UTC 或 serverTimezone=Asia/Shanghai</td>
+                </tr>
+                <tr>
+                    <td>BindingException: Invalid bound statement: com.example.mapper.UserMapper.findAll</td>
+                    <td>Mapper 接口与 XML 不匹配</td>
+                    <td>检查 namespace、id 是否一致；检查 Mapper XML 是否已注册到 mybatis-config.xml</td>
+                </tr>
+                <tr>
+                    <td>NullPointerException</td>
+                    <td>SqlSession 未开启自动提交，且未手动 commit</td>
+                    <td>使用 factory.openSession(true) 开启自动提交，或在增删改操作后手动 session.commit()</td>
+                </tr>
+                <tr>
+                    <td>SQL 语句打印乱码</td>
+                    <td>字符编码问题</td>
+                    <td>在 db.properties 中添加 characterEncoding=utf8&useUnicode=true</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2>📝 案例总结</h2>
+        <ul>
+            <li>✅ 掌握完整项目结构（Maven + Mybatis）</li>
+            <li>✅ 掌握数据库初始化脚本编写</li>
+            <li>✅ 掌握实体类、Mapper 接口、Mapper XML 编写规范</li>
+            <li>✅ 掌握 mybatis-config.xml、db.properties 配置</li>
+            <li>✅ 掌握测试类编写与运行</li>
+            <li>✅ 掌握常见问题排查方法</li>
+        </ul>
+
+        <div class="footer">
+            第01章 Mybatis与Mybatis-Plus框架基础 · 第1节 Mybatis的组件 · 6学时（理论4 + 实验2）· 详细版
+        </div>
+    
+    </div>
+</body>
+</html>

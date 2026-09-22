@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第3节 多对多映射_详细版 - 详细版 - 第05章 MyBatis关联映射与多表查询</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 10px; font-size: 26px; }
+        .subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+        h2 { color: #2980b9; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 40px; font-size: 21px; }
+        h3 { color: #16a085; margin-top: 30px; font-size: 18px; }
+        h4 { color: #7f8c8d; margin-top: 20px; font-size: 16px; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 18px 20px; border-radius: 5px; overflow-x: auto; line-height: 1.6; }
+        pre code { font-family: 'Consolas', 'Monaco', monospace; font-size: 13.5px; }
+        code { font-family: 'Consolas', 'Monaco', monospace; background: #eef2f5; padding: 2px 6px; border-radius: 3px; color: #c0392b; font-size: 13.5px; }
+        pre code { background: transparent; padding: 0; color: inherit; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .note-title { font-weight: bold; margin-bottom: 6px; }
+        .note .note-title { color: #2471a3; }
+        .warning .note-title { color: #9a7d0a; }
+        .tip .note-title { color: #1e7e34; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; vertical-align: top; }
+        th { background: #3498db; color: white; font-weight: 600; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 6px 0; }
+        .filepath { display: inline-block; background: #2c3e50; color: #7fe3a1; font-family: 'Consolas', 'Monaco', monospace; font-size: 12.5px; padding: 4px 10px; border-radius: 4px; margin: 12px 0 6px; word-break: break-all; }
+        .srcmap { background: #f4f7fa; border: 1px solid #d6e2ef; border-radius: 6px; padding: 14px 18px; margin: 18px 0; }
+        .srcmap ul { margin: 6px 0 0; }
+        .srcmap li { font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; }
+        .badge { display: inline-block; background: #eaf3fb; color: #1a6fa8; border: 1px solid #bcd8ee; border-radius: 4px; font-size: 12px; padding: 1px 8px; margin-right: 6px; }
+        hr { border: none; border-top: 1px solid #e6e6e6; margin-top: 50px; }
+        .footer { text-align: center; color: #999; font-size: 13.5px; margin-top: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+<h1>第05章 第3 多对多映射 - 详细版</h1>
+<div class="subtitle">课程代码 1960229 · Java框架技术 · 配套项目：SpringSpringMVCMybatis（Spring 4.3.30.RELEASE + MyBatis 3.5.13）</div>
+<h2>一、学习目标</h2>
+<ol>
+<li>理解多对多必须通过中间表实现，以及中间表的作用</li>
+<li>会写「两次 JOIN + collection」的多对多嵌套结果映射</li>
+<li>会用 <code>@Many</code> 调用「查中间表」的子查询</li>
+<li>知道 <code>DISTINCT</code> 在多对多 JOIN 中的必要性</li>
+</ol>
+<h2>二、核心知识点</h2>
+<h3>3.1 多对多的物理结构：中间表</h3>
+<p>一个员工可以掌握多项技能，一项技能也可以被多个员工掌握，这种关系无法用外键直接表达，必须引入中间表 <code>emp_skill(empno, skill_id)</code>。查询时需两次 JOIN：<code>emp → emp_skill → skill</code>。</p>
+<span class="badge">sql</span><pre><code>-- 技能表
+CREATE TABLE skill (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(255)
+);
+
+-- 中间表：联合主键，两个外键分别指向 emp 与 skill
+CREATE TABLE emp_skill (
+    empno    INT NOT NULL,
+    skill_id INT NOT NULL,
+    PRIMARY KEY (empno, skill_id),
+    FOREIGN KEY (empno)    REFERENCES emp(empno),
+    FOREIGN KEY (skill_id) REFERENCES skill(id)
+);</code></pre>
+<h3>3.2 嵌套结果版：两次 JOIN + DISTINCT</h3>
+<p>JOIN 会把「一个员工 × N 项技能」展开成 N 行，因此要 <code>DISTINCT</code> 去重，并用给列起别名（<code>skill_id / skill_name / skill_desc</code>）避免与 emp 的列冲突。映射侧用 <code>&lt;id property="empno"&gt;</code> 让 MyBatis 把多行归并成一个 Emp。</p>
+<span class="badge">xml</span><pre><code>&lt;resultMap id="empWithSkillsMap" type="com.entity.Emp"&gt;
+    &lt;id property="empno" column="empno"/&gt;
+    &lt;result property="ename" column="ename"/&gt;
+    &lt;result property="job" column="job"/&gt;
+    &lt;result property="sal" column="sal"/&gt;
+    &lt;result property="deptno" column="deptno"/&gt;
+    &lt;collection property="skills" ofType="com.entity.Skill"&gt;
+        &lt;id property="id" column="skill_id"/&gt;
+        &lt;result property="name" column="skill_name"/&gt;
+        &lt;result property="description" column="skill_desc"/&gt;
+    &lt;/collection&gt;
+&lt;/resultMap&gt;
+
+&lt;select id="many2manyByXml" parameterType="int" resultMap="empWithSkillsMap"&gt;
+    SELECT DISTINCT e.empno, e.ename, e.job, e.sal, e.deptno,
+           s.id AS skill_id, s.name AS skill_name, s.description AS skill_desc
+    FROM emp e
+    LEFT JOIN emp_skill es ON e.empno = es.empno
+    LEFT JOIN skill s ON es.skill_id = s.id
+    WHERE e.empno = #{empno}
+&lt;/select&gt;</code></pre>
+<h3>3.3 嵌套 select 版：把中间表查询抽成独立方法</h3>
+<p>注解版更直观：主查询查员工，<code>@Many</code> 指向「按员工编号查技能」的方法，该方法内部自己做两次 JOIN。这样 SQL 职责清晰，也便于复用。</p>
+<span class="badge">java</span><pre><code>@Select("SELECT * FROM emp WHERE empno = #{empno}")
+@Results({
+        @Result(property = "empno",  column = "empno"),
+        @Result(property = "ename",  column = "ename"),
+        @Result(property = "job",    column = "job"),
+        @Result(property = "sal",    column = "sal"),
+        @Result(property = "deptno", column = "deptno"),
+        @Result(property = "skills", column = "empno",
+                many = @Many(select = "com.chapter05.Chapter05EmpMapper.selectSkillsByEmpno"))
+})
+Emp many2manyByAnn(Integer empno);
+
+/** 中间表查询：技能与员工的多对多关系就藏在 JOIN 条件里 */
+@Select("SELECT s.id, s.name, s.description " +
+        "FROM skill s " +
+        "INNER JOIN emp_skill es ON s.id = es.skill_id " +
+        "WHERE es.empno = #{empno}")
+List&lt;Skill&gt; selectSkillsByEmpno(@Param("empno") Integer empno);</code></pre>
+<h3>3.4 双向映射：Skill 侧也有 List&lt;Emp&gt;</h3>
+<p>多对多是双向的。<code>Skill</code> 里也声明了 <code>List&lt;Emp&gt; emps</code>，需要时同样可以用 collection 查出「一项技能被哪些员工掌握」。</p>
+<span class="badge">java</span><pre><code>public class Skill implements Serializable {
+    private Integer id;
+    private String name;
+    private String description;
+
+    private List&lt;Emp&gt; emps;   // 反向：这项技能被哪些员工掌握
+}</code></pre>
+<h2>三、对照表 / 参数说明</h2>
+<h4>多对多的三个关键点</h4>
+<table>
+<thead><tr><th>要点</th><th>做法</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td>中间表</td><td><code>emp_skill(empno, skill_id)</code></td><td>关系型数据库无法直接表达多对多</td></tr>
+<tr><td>两次 JOIN</td><td><code>emp → emp_skill → skill</code></td><td>从员工走到技能必须穿过中间表</td></tr>
+<tr><td>列名别名</td><td><code>s.id AS skill_id</code></td><td>避免与 emp 的列冲突，供 collection 映射</td></tr>
+<tr><td>DISTINCT</td><td>去重</td><td>一个员工多条技能会展开成多行</td></tr>
+<tr><td>collection + ofType</td><td><code>ofType="com.entity.Skill"</code></td><td>集合元素类型</td></tr>
+</tbody>
+</table>
+<h2>四、项目源码对照</h2>
+<div class="srcmap">
+<strong>📁 本章对应项目源码（SpringSpringMVCMybatis）</strong>
+<ul>
+<li>src/main/java/com/chapter05/Chapter05EmpMapper.java</li>
+<li>src/main/resources/chapter05/mapper/Chapter05EmpMapper.xml</li>
+<li>src/main/java/com/entity/Skill.java</li>
+<li>sql/dept_emp.sql</li>
+<li>src/test/java/com/chapter05/Chapter05Test.java</li>
+</ul>
+</div>
+<span class="filepath">src/main/java/com/entity/Skill.java</span>
+<span class="badge">java</span><pre><code>package com.entity;
+
+import java.io.Serializable;
+import java.util.List;
+
+public class Skill implements Serializable {
+
+    private Integer id;
+    private String name;
+    private String description;
+
+    private List&lt;Emp&gt; emps;
+
+    public Skill() {
+    }
+
+    public Skill(Integer id, String name, String description) {
+        this.id = id;
+        this.name = name;
+        this.description = description;
+    }
+
+    // getter / setter 略（项目源码中完整存在）
+
+    @Override
+    public String toString() {
+        return "Skill{" + "id=" + id + ", name='" + name + '\'' +
+                ", description='" + description + '\'' + '}';
+    }
+}</code></pre>
+<span class="filepath">src/main/resources/chapter05/mapper/Chapter05EmpMapper.xml</span>
+<span class="badge">xml</span><pre><code>    &lt;resultMap id="empWithSkillsMap" type="com.entity.Emp"&gt;
+        &lt;id property="empno" column="empno"/&gt;
+        &lt;result property="ename" column="ename"/&gt;
+        &lt;result property="job" column="job"/&gt;
+        &lt;result property="mgr" column="mgr"/&gt;
+        &lt;result property="hiredate" column="hiredate"/&gt;
+        &lt;result property="sal" column="sal"/&gt;
+        &lt;result property="comm" column="comm"/&gt;
+        &lt;result property="deptno" column="deptno"/&gt;
+        &lt;collection property="skills" ofType="com.entity.Skill"&gt;
+            &lt;id property="id" column="skill_id"/&gt;
+            &lt;result property="name" column="skill_name"/&gt;
+            &lt;result property="description" column="skill_desc"/&gt;
+        &lt;/collection&gt;
+    &lt;/resultMap&gt;
+
+    &lt;!-- ========== 多对多（XML方式）========== --&gt;
+    &lt;select id="many2manyByXml" parameterType="int" resultMap="empWithSkillsMap"&gt;
+        SELECT DISTINCT e.empno, e.ename, e.job, e.sal, e.deptno,
+               s.id AS skill_id, s.name AS skill_name, s.description AS skill_desc
+        FROM emp e
+        LEFT JOIN emp_skill es ON e.empno = es.empno
+        LEFT JOIN skill s ON es.skill_id = s.id
+        WHERE e.empno = #{empno}
+    &lt;/select&gt;</code></pre>
+<span class="filepath">src/test/java/com/chapter05/Chapter05Test.java</span>
+<span class="badge">java</span><pre><code>    @Test
+    public void testMany2manyByXml() {
+        System.out.println("========== 多对多（XML方式）==========");
+        System.out.println("知识点：中间表 emp_skill + 两次 LEFT JOIN + &lt;collection&gt; + DISTINCT 去重");
+
+        Emp emp = empMapper.many2manyByXml(7566);
+        if (emp != null) {
+            System.out.println("员工：" + emp.getEname() + " (编号:" + emp.getEmpno() + ")");
+            System.out.println("技能数量：" + (emp.getSkills() != null ? emp.getSkills().size() : 0));
+            if (emp.getSkills() != null) {
+                for (Skill skill : emp.getSkills()) {
+                    System.out.println("  - " + skill.getName() + ": " + skill.getDescription());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testMany2manyByAnn() {
+        System.out.println("========== 多对多（注解方式）==========");
+        System.out.println("知识点：@Many(select = ...) 调用另一个查询方法");
+
+        Emp emp = empMapper.many2manyByAnn(7788);
+        if (emp != null) {
+            System.out.println("员工：" + emp.getEname() + " 技能数量：" +
+                    (emp.getSkills() != null ? emp.getSkills().size() : 0));
+        }
+    }</code></pre>
+<h2>五、运行结果</h2>
+<span class="badge">text</span><pre><code>========== 多对多（XML方式）==========
+知识点：中间表 emp_skill + 两次 LEFT JOIN + &lt;collection&gt; + DISTINCT 去重
+员工：JONES (编号:7566)
+技能数量：2
+  - Java: 后端开发
+  - MySQL: 数据库
+========== 多对多（注解方式）==========
+知识点：@Many(select = ...) 调用另一个查询方法
+员工：SCOTT (编号:7788)
+技能数量：1</code></pre>
+<h2>六、注意事项与常见坑</h2>
+<div class="note">
+<div class="note-title">📌 DISTINCT 与主键归并的分工</div>
+<ul>
+<li><code>DISTINCT</code> 在 SQL 层去掉重复行，减少数据传输。</li>
+<li><code>&lt;id property="empno"&gt;</code> 在映射层把多行归并成一个对象 —— 两者是互补的。</li>
+</ul>
+</div>
+<div class="warning">
+<div class="note-title">⚠️ LEFT JOIN 会产生全 null 的技能对象</div>
+<ul>
+<li>员工没有技能时，LEFT JOIN 会返回一行 skill 全为 null 的记录。</li>
+<li>若业务上一个技能都没有就应该是空集合，可改用 INNER JOIN 或在业务层过滤。</li>
+</ul>
+</div>
+<div class="tip">
+<div class="note-title">✅ 中间表也可以只查关系</div>
+<ul>
+<li>有时只需要员工编号列表而不需要技能详情，此时直接查 emp_skill 更轻量。</li>
+<li>不要为了「用上 collection」而强行多表 JOIN。</li>
+</ul>
+</div>
+<h2>七、小结</h2>
+<div class="tip">
+<div class="note-title">✅ 本节要点</div>
+<ul>
+<li>理解多对多必须借助中间表，并能画出 emp - emp_skill - skill 的关系</li>
+<li>会写两次 JOIN + collection 的多对多嵌套结果映射</li>
+<li>会用 @Many 调用独立的中间表查询方法</li>
+<li>知道 DISTINCT 与主键归并各自解决什么问题</li>
+</ul>
+</div>
+        <hr>
+        <p class="footer">Spring Core 教学课程 · 第05章 MyBatis关联映射与多表查询 · 第5-3 节</p>
+    </div>
+</body>
+</html>

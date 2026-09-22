@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第1节 MyBatis注解基础与CRUD - 示例代码</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; font-size: 28px; }
+        h2 { color: #2980b9; margin: 35px 0 20px 0; padding-left: 15px; border-left: 4px solid #3498db; font-size: 22px; }
+        h3 { color: #27ae60; margin: 25px 0 15px 0; font-size: 18px; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 20px 0; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 5px; overflow-x: auto; margin: 15px 0; }
+        code { font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        .section { margin-bottom: 40px; }
+        .file-header { background: #34495e; color: white; padding: 10px 15px; margin: 20px 0 0 0; border-radius: 5px 5px 0 0; font-weight: bold; }
+        .file-content { margin: 0; border-radius: 0 0 5px 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第1节 MyBatis注解基础与CRUD - 完整示例代码</h1>
+        
+        <div class="section">
+            <h2>项目结构</h2>
+            <pre><code>mybatis-annotation-demo/
+├── pom.xml
+├── src/
+│   ├── main/
+│   │   ├── java/com/example/
+│   │   │   ├── pojo/User.java
+│   │   │   ├── mapper/UserMapper.java
+│   │   │   └── provider/UserSqlProvider.java
+│   │   └── resources/
+│   │       ├── mybatis-config.xml
+│   │       └── log4j.properties
+│   └── test/
+│       └── java/com/example/test/
+│           ├── BaseTest.java
+│           └── UserMapperTest.java
+└── sql/
+    └── schema.sql</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>1. 数据库脚本</h2>
+            <div class="file-header">sql/schema.sql</div>
+            <pre class="file-content"><code>-- 创建数据库
+CREATE DATABASE IF NOT EXISTS mybatis_study CHARACTER SET utf8mb4;
+USE mybatis_study;
+
+-- 创建用户表
+DROP TABLE IF EXISTS user;
+CREATE TABLE user (
+    id INT PRIMARY KEY AUTO_INCREMENT COMMENT '用户ID',
+    username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
+    password VARCHAR(100) NOT NULL COMMENT '密码',
+    age INT DEFAULT 0 COMMENT '年龄',
+    email VARCHAR(100) COMMENT '邮箱',
+    phone VARCHAR(20) COMMENT '手机号',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    deleted INT DEFAULT 0 COMMENT '删除标记：0-未删除，1-已删除'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+-- 插入测试数据
+INSERT INTO user(username, password, age, email, phone) VALUES
+('zhangsan', '123456', 25, 'zhangsan@qq.com', '13800138001'),
+('lisi', '654321', 30, 'lisi@qq.com', '13800138002'),
+('wangwu', '111111', 28, 'wangwu@qq.com', '13800138003'),
+('zhaoliu', '222222', 35, 'zhaoliu@qq.com', '13800138004'),
+('sunqi', '333333', 22, 'sunqi@qq.com', '13800138005');
+
+-- 验证数据
+SELECT * FROM user;</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>2. Maven配置</h2>
+            <div class="file-header">pom.xml</div>
+            <pre class="file-content"><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+    
+    &lt;groupId&gt;com.example&lt;/groupId&gt;
+    &lt;artifactId&gt;mybatis-annotation-demo&lt;/artifactId&gt;
+    &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+    
+    &lt;properties&gt;
+        &lt;maven.compiler.source&gt;8&lt;/maven.compiler.source&gt;
+        &lt;maven.compiler.target&gt;8&lt;/maven.compiler.target&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+    &lt;/properties&gt;
+    
+    &lt;dependencies&gt;
+        &lt;!-- MyBatis核心依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.mybatis&lt;/groupId&gt;
+            &lt;artifactId&gt;mybatis&lt;/artifactId&gt;
+            &lt;version&gt;3.5.13&lt;/version&gt;
+        &lt;/dependency&gt;
+        
+        &lt;!-- MySQL驱动 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.mysql&lt;/groupId&gt;
+            &lt;artifactId&gt;mysql-connector-j&lt;/artifactId&gt;
+            &lt;version&gt;8.0.33&lt;/version&gt;
+        &lt;/dependency&gt;
+        
+        &lt;!-- Lombok简化代码 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;
+            &lt;artifactId&gt;lombok&lt;/artifactId&gt;
+            &lt;version&gt;1.18.30&lt;/version&gt;
+            &lt;scope&gt;provided&lt;/scope&gt;
+        &lt;/dependency&gt;
+        
+        &lt;!-- JUnit单元测试 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;junit&lt;/groupId&gt;
+            &lt;artifactId&gt;junit&lt;/artifactId&gt;
+            &lt;version&gt;4.13.2&lt;/version&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+        
+        &lt;!-- 日志 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;log4j&lt;/groupId&gt;
+            &lt;artifactId&gt;log4j&lt;/artifactId&gt;
+            &lt;version&gt;1.2.17&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+    
+    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-compiler-plugin&lt;/artifactId&gt;
+                &lt;version&gt;3.8.1&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;source&gt;8&lt;/source&gt;
+                    &lt;target&gt;8&lt;/target&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+&lt;/project&gt;</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>3. MyBatis配置文件</h2>
+            <div class="file-header">src/main/resources/mybatis-config.xml</div>
+            <pre class="file-content"><code>&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+&lt;configuration&gt;
+    &lt;settings&gt;
+        &lt;!-- 开启驼峰命名自动映射 --&gt;
+        &lt;setting name="mapUnderscoreToCamelCase" value="true"/&gt;
+        
+        &lt;!-- 开启延迟加载 --&gt;
+        &lt;setting name="lazyLoadingEnabled" value="true"/&gt;
+        
+        &lt;!-- 关闭积极加载 --&gt;
+        &lt;setting name="aggressiveLazyLoading" value="false"/&gt;
+        
+        &lt;!-- 打印SQL日志 --&gt;
+        &lt;setting name="logImpl" value="STDOUT_LOGGING"/&gt;
+    &lt;/settings&gt;
+    
+    &lt;typeAliases&gt;
+        &lt;package name="com.example.pojo"/&gt;
+    &lt;/typeAliases&gt;
+    
+    &lt;environments default="development"&gt;
+        &lt;environment id="development"&gt;
+            &lt;transactionManager type="JDBC"/&gt;
+            &lt;dataSource type="POOLED"&gt;
+                &lt;property name="driver" value="com.mysql.cj.jdbc.Driver"/&gt;
+                &lt;property name="url" value="jdbc:mysql://localhost:3306/mybatis_study?useSSL=false&amp;amp;serverTimezone=UTC&amp;amp;characterEncoding=utf8"/&gt;
+                &lt;property name="username" value="root"/&gt;
+                &lt;property name="password" value="123456"/&gt;
+            &lt;/dataSource&gt;
+        &lt;/environment&gt;
+    &lt;/environments&gt;
+    
+    &lt;mappers&gt;
+        &lt;package name="com.example.mapper"/&gt;
+    &lt;/mappers&gt;
+&lt;/configuration&gt;</code></pre>
+
+            <div class="file-header">src/main/resources/log4j.properties</div>
+            <pre class="file-content"><code># 日志级别配置
+log4j.rootLogger=DEBUG, stdout
+
+# 控制台输出
+log4j.appender.stdout=org.apache.log4j.ConsoleAppender
+log4j.appender.stdout.Target=System.out
+log4j.appender.stdout.layout=org.apache.log4j.PatternLayout
+log4j.appender.stdout.layout.ConversionPattern=%d{yyyy-MM-dd HH:mm:ss} %-5p %c{1}:%L - %m%n
+
+# MyBatis日志记录
+log4j.logger.org.mybatis=DEBUG
+log4j.logger.java.sql=DEBUG
+log4j.logger.java.sql.Connection=DEBUG
+log4j.logger.java.sql.Statement=DEBUG
+log4j.logger.java.sql.PreparedStatement=DEBUG</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>4. 实体类</h2>
+            <div class="file-header">src/main/java/com/example/pojo/User.java</div>
+            <pre class="file-content"><code>package com.example.pojo;
+
+import lombok.Data;
+import java.util.Date;
+
+/**
+ * 用户实体类
+ */
+@Data
+public class User {
+    private Integer id;
+    private String username;
+    private String password;
+    private Integer age;
+    private String email;
+    private String phone;
+    private Date createTime;
+    private Date updateTime;
+    private Integer deleted;
+}</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>5. Mapper接口</h2>
+            <div class="file-header">src/main/java/com/example/mapper/UserMapper.java</div>
+            <pre class="file-content"><code>package com.example.mapper;
+
+import com.example.pojo.User;
+import org.apache.ibatis.annotations.*;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 用户Mapper接口
+ * 使用注解配置SQL
+ */
+public interface UserMapper {
+    
+    // ==================== 查询操作 ====================
+    
+    /**
+     * 查询所有未删除的用户
+     */
+    @Select("SELECT * FROM user WHERE deleted = 0")
+    List&lt;User&gt; findAll();
+    
+    /**
+     * 根据ID查询用户
+     */
+    @Select("SELECT * FROM user WHERE id = #{id} AND deleted = 0")
+    User findById(Integer id);
+    
+    /**
+     * 根据用户名查询用户
+     */
+    @Select("SELECT * FROM user WHERE username = #{username} AND deleted = 0")
+    User findByUsername(String username);
+    
+    /**
+     * 根据用户名模糊查询
+     */
+    @Select("SELECT * FROM user WHERE username LIKE CONCAT('%', #{keyword}, '%') AND deleted = 0")
+    List&lt;User&gt; findByKeyword(String keyword);
+    
+    /**
+     * 多参数查询（使用@Param注解）
+     */
+    @Select("SELECT * FROM user WHERE username = #{name} AND age &gt;= #{minAge} AND deleted = 0")
+    List&lt;User&gt; findByUsernameAndAge(@Param("name") String username, 
+                                     @Param("minAge") Integer age);
+    
+    /**
+     * 动态查询（使用&lt;script&gt;标签）
+     */
+    @Select({
+        "&lt;script&gt;",
+        "SELECT * FROM user WHERE deleted = 0",
+        "&lt;if test='username != null and username != \"\"'&gt;",
+        "AND username LIKE CONCAT('%', #{username}, '%')",
+        "&lt;/if&gt;",
+        "&lt;if test='minAge != null'&gt;",
+        "AND age &gt;= #{minAge}",
+        "&lt;/if&gt;",
+        "&lt;if test='maxAge != null'&gt;",
+        "AND age &lt;= #{maxAge}",
+        "&lt;/if&gt;",
+        "&lt;if test='email != null and email != \"\"'&gt;",
+        "AND email = #{email}",
+        "&lt;/if&gt;",
+        "ORDER BY id DESC",
+        "&lt;/script&gt;"
+    })
+    List&lt;User&gt; findByCondition(@Param("username") String username,
+                                @Param("minAge") Integer minAge,
+                                @Param("maxAge") Integer maxAge,
+                                @Param("email") String email);
+    
+    /**
+     * 动态查询（使用@SelectProvider）
+     */
+    @SelectProvider(type = com.example.provider.UserSqlProvider.class, method = "findByCondition")
+    List&lt;User&gt; findByCondition2(Map&lt;String, Object&gt; params);
+    
+    // ==================== 插入操作 ====================
+    
+    /**
+     * 插入用户并返回自增主键
+     */
+    @Insert("INSERT INTO user(username, password, age, email, phone) " +
+            "VALUES(#{username}, #{password}, #{age}, #{email}, #{phone})")
+    @Options(useGeneratedKeys = true, keyProperty = "id", keyColumn = "id")
+    int insert(User user);
+    
+    /**
+     * 动态插入（只插入非null字段）
+     */
+    @InsertProvider(type = com.example.provider.UserSqlProvider.class, method = "insertSelective")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insertSelective(Map&lt;String, Object&gt; params);
+    
+    /**
+     * 批量插入
+     */
+    @Insert({
+        "&lt;script&gt;",
+        "INSERT INTO user(username, password, age, email) VALUES",
+        "&lt;foreach collection='list' item='user' separator=','&gt;",
+        "(#{user.username}, #{user.password}, #{user.age}, #{user.email})",
+        "&lt;/foreach&gt;",
+        "&lt;/script&gt;"
+    })
+    int batchInsert(List&lt;User&gt; users);
+    
+    // ==================== 更新操作 ====================
+    
+    /**
+     * 根据ID更新用户信息
+     */
+    @Update({
+        "&lt;script&gt;",
+        "UPDATE user",
+        "&lt;set&gt;",
+        "&lt;if test='username != null and username != \"\"'&gt;username = #{username},&lt;/if&gt;",
+        "&lt;if test='password != null and password != \"\"'&gt;password = #{password},&lt;/if&gt;",
+        "&lt;if test='age != null'&gt;age = #{age},&lt;/if&gt;",
+        "&lt;if test='email != null and email != \"\"'&gt;email = #{email},&lt;/if&gt;",
+        "&lt;if test='phone != null and phone != \"\"'&gt;phone = #{phone},&lt;/if&gt;",
+        "&lt;/set&gt;",
+        "WHERE id = #{id} AND deleted = 0",
+        "&lt;/script&gt;"
+    })
+    int update(User user);
+    
+    /**
+     * 更新密码
+     */
+    @Update("UPDATE user SET password = #{password} WHERE id = #{id}")
+    int updatePassword(@Param("id") Integer id, 
+                       @Param("password") String password);
+    
+    /**
+     * 动态更新（使用@UpdateProvider）
+     */
+    @UpdateProvider(type = com.example.provider.UserSqlProvider.class, method = "updateSelective")
+    int updateSelective(Map&lt;String, Object&gt; params);
+    
+    // ==================== 删除操作 ====================
+    
+    /**
+     * 逻辑删除用户
+     */
+    @Update("UPDATE user SET deleted = 1 WHERE id = #{id}")
+    int delete(Integer id);
+    
+    /**
+     * 批量逻辑删除
+     */
+    @Update({
+        "&lt;script&gt;",
+        "UPDATE user SET deleted = 1 WHERE id IN",
+        "&lt;foreach collection='ids' item='id' open='(' close=')' separator=','&gt;",
+        "#{id}",
+        "&lt;/foreach&gt;",
+        "&lt;/script&gt;"
+    })
+    int batchDelete(@Param("ids") List&lt;Integer&gt; ids);
+    
+    /**
+     * 物理删除（慎用）
+     */
+    @Delete("DELETE FROM user WHERE id = #{id}")
+    int physicalDelete(Integer id);
+}</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>6. SQL Provider类</h2>
+            <div class="file-header">src/main/java/com/example/provider/UserSqlProvider.java</div>
+            <pre class="file-content"><code>package com.example.provider;
+
+import org.apache.ibatis.jdbc.SQL;
+import java.util.Map;
+
+/**
+ * 用户SQL Provider类
+ * 用于生成动态SQL
+ */
+public class UserSqlProvider {
+    
+    /**
+     * 动态查询用户
+     */
+    public String findByCondition(Map&lt;String, Object&gt; params) {
+        return new SQL() {{
+            SELECT("*");
+            FROM("user");
+            WHERE("deleted = 0");
+            
+            if (params.get("username") != null) {
+                AND().WHERE("username LIKE CONCAT('%', #{username}, '%')");
+            }
+            if (params.get("minAge") != null) {
+                AND().WHERE("age &gt;= #{minAge}");
+            }
+            if (params.get("maxAge") != null) {
+                AND().WHERE("age &lt;= #{maxAge}");
+            }
+            if (params.get("email") != null) {
+                AND().WHERE("email = #{email}");
+            }
+            
+            ORDER_BY("id DESC");
+        }}.toString();
+    }
+    
+    /**
+     * 动态插入用户（只插入非null字段）
+     */
+    public String insertSelective(Map&lt;String, Object&gt; params) {
+        return new SQL() {{
+            INSERT_INTO("user");
+            
+            if (params.get("username") != null) {
+                VALUES("username", "#{username}");
+            }
+            if (params.get("password") != null) {
+                VALUES("password", "#{password}");
+            }
+            if (params.get("age") != null) {
+                VALUES("age", "#{age}");
+            }
+            if (params.get("email") != null) {
+                VALUES("email", "#{email}");
+            }
+            if (params.get("phone") != null) {
+                VALUES("phone", "#{phone}");
+            }
+        }}.toString();
+    }
+    
+    /**
+     * 动态更新用户（只更新非null字段）
+     */
+    public String updateSelective(Map&lt;String, Object&gt; params) {
+        return new SQL() {{
+            UPDATE("user");
+            
+            if (params.get("username") != null) {
+                SET("username = #{username}");
+            }
+            if (params.get("password") != null) {
+                SET("password = #{password}");
+            }
+            if (params.get("age") != null) {
+                SET("age = #{age}");
+            }
+            if (params.get("email") != null) {
+                SET("email = #{email}");
+            }
+            if (params.get("phone") != null) {
+                SET("phone = #{phone}");
+            }
+            
+            WHERE("id = #{id}");
+        }}.toString();
+    }
+}</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>7. 测试基类</h2>
+            <div class="file-header">src/test/java/com/example/test/BaseTest.java</div>
+            <pre class="file-content"><code>package com.example.test;
+
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.junit.After;
+import org.junit.Before;
+import java.io.InputStream;
+
+/**
+ * 测试基类
+ * 用于初始化SqlSession
+ */
+public class BaseTest {
+    protected SqlSession sqlSession;
+    protected SqlSessionFactory sqlSessionFactory;
+    
+    /**
+     * 测试前执行
+     * 初始化SqlSession
+     */
+    @Before
+    public void setUp() throws Exception {
+        // 1. 读取配置文件
+        String resource = "mybatis-config.xml";
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        
+        // 2. 创建SqlSessionFactory
+        sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+        
+        // 3. 创建SqlSession（true表示自动提交）
+        sqlSession = sqlSessionFactory.openSession(true);
+        
+        System.out.println("=== SqlSession初始化完成 ===");
+    }
+    
+    /**
+     * 测试后执行
+     * 关闭SqlSession
+     */
+    @After
+    public void tearDown() {
+        // 关闭SqlSession
+        if (sqlSession != null) {
+            sqlSession.close();
+            System.out.println("=== SqlSession已关闭 ===");
+        }
+    }
+}</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>8. 测试类</h2>
+            <div class="file-header">src/test/java/com/example/test/UserMapperTest.java</div>
+            <pre class="file-content"><code>package com.example.test;
+
+import com.example.mapper.UserMapper;
+import com.example.pojo.User;
+import org.apache.ibatis.session.SqlSession;
+import org.junit.Test;
+import java.util.*;
+
+/**
+ * 用户Mapper测试类
+ */
+public class UserMapperTest extends BaseTest {
+    
+    /**
+     * 测试查询所有用户
+     */
+    @Test
+    public void testFindAll() {
+        // 1. 获取Mapper接口
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        // 2. 调用方法
+        List&lt;User&gt; users = userMapper.findAll();
+        
+        // 3. 输出结果
+        System.out.println("用户总数：" + users.size());
+        for (User user : users) {
+            System.out.println("ID: " + user.getId() + 
+                             ", 用户名: " + user.getUsername() + 
+                             ", 年龄: " + user.getAge());
+        }
+        
+        // 4. 断言验证
+        assert users.size() &gt; 0 : "用户数应该大于0";
+    }
+    
+    /**
+     * 测试根据ID查询用户
+     */
+    @Test
+    public void testFindById() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        User user = userMapper.findById(1);
+        
+        System.out.println("查询结果：" + user);
+        assert user != null : "用户不应该为null";
+        assert "zhangsan".equals(user.getUsername()) : "用户名应该是zhangsan";
+    }
+    
+    /**
+     * 测试根据用户名查询用户
+     */
+    @Test
+    public void testFindByUsername() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        User user = userMapper.findByUsername("zhangsan");
+        
+        System.out.println("查询结果：" + user);
+        assert user != null : "用户不应该为null";
+    }
+    
+    /**
+     * 测试插入用户
+     */
+    @Test
+    public void testInsert() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        // 创建新用户
+        User user = new User();
+        user.setUsername("newuser");
+        user.setPassword("123456");
+        user.setAge(25);
+        user.setEmail("newuser@example.com");
+        user.setPhone("13900139000");
+        
+        // 插入
+        int rows = userMapper.insert(user);
+        
+        System.out.println("插入成功，影响行数：" + rows);
+        System.out.println("新增用户ID：" + user.getId());
+        
+        assert rows == 1 : "应该插入1条记录";
+        assert user.getId() != null : "主键应该自动回填";
+    }
+    
+    /**
+     * 测试动态插入
+     */
+    @Test
+    public void testInsertSelective() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        // 创建插入参数（只插入部分字段）
+        Map&lt;String, Object&gt; params = new HashMap&lt;&gt;();
+        params.put("username", "selective_user");
+        params.put("password", "123456");
+        params.put("age", 30);
+        // 不设置email和phone，测试动态插入
+        
+        int rows = userMapper.insertSelective(params);
+        
+        System.out.println("动态插入成功，影响行数：" + rows);
+        assert rows == 1 : "应该插入1条记录";
+    }
+    
+    /**
+     * 测试更新用户
+     */
+    @Test
+    public void testUpdate() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        // 查询用户
+        User user = userMapper.findById(1);
+        System.out.println("更新前：" + user.getUsername());
+        
+        // 修改用户
+        user.setUsername("zhangsan_updated");
+        user.setEmail("updated@qq.com");
+        
+        int rows = userMapper.update(user);
+        
+        System.out.println("更新成功，影响行数：" + rows);
+        
+        // 再次查询验证
+        User updatedUser = userMapper.findById(1);
+        System.out.println("更新后：" + updatedUser.getUsername());
+        
+        assert rows == 1 : "应该更新1条记录";
+        assert "zhangsan_updated".equals(updatedUser.getUsername()) : "用户名应该已更新";
+    }
+    
+    /**
+     * 测试删除用户（逻辑删除）
+     */
+    @Test
+    public void testDelete() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        // 插入一个新用户用于删除测试
+        User user = new User();
+        user.setUsername("todelete");
+        user.setPassword("123456");
+        user.setAge(20);
+        userMapper.insert(user);
+        
+        int userId = user.getId();
+        System.out.println("准备删除用户ID：" + userId);
+        
+        // 删除用户
+        int rows = userMapper.delete(userId);
+        
+        System.out.println("删除成功，影响行数：" + rows);
+        
+        // 验证是否已删除（逻辑删除）
+        User deletedUser = userMapper.findById(userId);
+        System.out.println("删除后查询：" + deletedUser);
+        
+        assert rows == 1 : "应该删除1条记录";
+        assert deletedUser == null : "逻辑删除后应该查询不到";
+    }
+    
+    /**
+     * 测试批量插入
+     */
+    @Test
+    public void testBatchInsert() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        // 创建用户列表
+        List&lt;User&gt; users = new ArrayList&lt;&gt;();
+        for (int i = 1; i &lt;= 3; i++) {
+            User user = new User();
+            user.setUsername("batch_user_" + i);
+            user.setPassword("123456");
+            user.setAge(20 + i);
+            user.setEmail("batch" + i + "@example.com");
+            users.add(user);
+        }
+        
+        // 批量插入
+        int rows = userMapper.batchInsert(users);
+        
+        System.out.println("批量插入成功，影响行数：" + rows);
+        assert rows == 3 : "应该插入3条记录";
+    }
+    
+    /**
+     * 测试动态查询
+     */
+    @Test
+    public void testDynamicQuery() {
+        UserMapper userMapper = sqlSession.getMapper(UserMapper.class);
+        
+        // 测试1：查询所有用户（不传条件）
+        List&lt;User&gt; users1 = userMapper.findByCondition(null, null, null, null);
+        System.out.println("测试1 - 所有用户：" + users1.size());
+        
+        // 测试2：根据用户名模糊查询
+        List&lt;User&gt; users2 = userMapper.findByCondition("zhang", null, null, null);
+        System.out.println("测试2 - 用户名包含'zhang'：" + users2.size());
+        users2.forEach(u -&gt; System.out.println("  " + u.getUsername()));
+        
+        // 测试3：根据年龄范围查询
+        List&lt;User&gt; users3 = userMapper.findByCondition(null, 20, 30, null);
+        System.out.println("测试3 - 年龄20-30：" + users3.size());
+        users3.forEach(u -&gt; System.out.println("  " + u.getUsername() + ", 年龄:" + u.getAge()));
+        
+        // 测试4：组合查询（用户名+年龄）
+        List&lt;User&gt; users4 = userMapper.findByCondition("user", 20, 40, null);
+        System.out.println("测试4 - 用户名包含'user'且年龄20-40：" + users4.size());
+    }
+}</code></pre>
+        </div>
+
+        <div class="section">
+            <h2>9. 运行说明</h2>
+            <div class="note">
+                <h3>编译项目</h3>
+                <pre><code>cd mybatis-annotation-demo
+mvn clean compile</code></pre>
+                
+                <h3>运行所有测试</h3>
+                <pre><code>mvn test</code></pre>
+                
+                <h3>运行单个测试类</h3>
+                <pre><code>mvn test -Dtest=UserMapperTest</code></pre>
+                
+                <h3>运行单个测试方法</h3>
+                <pre><code>mvn test -Dtest=UserMapperTest#testFindAll</code></pre>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>10. 注意事项</h2>
+            <div class="note">
+                <ol>
+                    <li>修改 <code>mybatis-config.xml</code> 中的数据库连接信息（用户名、密码）</li>
+                    <li>确保MySQL服务已启动</li>
+                    <li>确保数据库 <code>mybatis_study</code> 已创建</li>
+                    <li>如果使用MySQL 8.0以下版本，修改driver为 <code>com.mysql.jdbc.Driver</code></li>
+                    <li>在注解中使用XML标签时，需要转义字符：&amp;lt; &amp;gt; &amp;amp;</li>
+                    <li>多参数方法必须使用 @Param 注解指定参数名</li>
+                    <li>插入操作后，主键值会自动设置到传入的User对象中</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

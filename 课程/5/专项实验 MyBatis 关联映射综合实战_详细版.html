@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>专项实验 MyBatis 关联映射综合实战_详细版 - 详细版 - 第05章 MyBatis关联映射与多表查询</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 10px; font-size: 26px; }
+        .subtitle { color: #7f8c8d; font-size: 14px; margin-bottom: 30px; }
+        h2 { color: #2980b9; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 40px; font-size: 21px; }
+        h3 { color: #16a085; margin-top: 30px; font-size: 18px; }
+        h4 { color: #7f8c8d; margin-top: 20px; font-size: 16px; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 18px 20px; border-radius: 5px; overflow-x: auto; line-height: 1.6; }
+        pre code { font-family: 'Consolas', 'Monaco', monospace; font-size: 13.5px; }
+        code { font-family: 'Consolas', 'Monaco', monospace; background: #eef2f5; padding: 2px 6px; border-radius: 3px; color: #c0392b; font-size: 13.5px; }
+        pre code { background: transparent; padding: 0; color: inherit; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; border-radius: 0 4px 4px 0; }
+        .note-title { font-weight: bold; margin-bottom: 6px; }
+        .note .note-title { color: #2471a3; }
+        .warning .note-title { color: #9a7d0a; }
+        .tip .note-title { color: #1e7e34; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; vertical-align: top; }
+        th { background: #3498db; color: white; font-weight: 600; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 6px 0; }
+        .filepath { display: inline-block; background: #2c3e50; color: #7fe3a1; font-family: 'Consolas', 'Monaco', monospace; font-size: 12.5px; padding: 4px 10px; border-radius: 4px; margin: 12px 0 6px; word-break: break-all; }
+        .srcmap { background: #f4f7fa; border: 1px solid #d6e2ef; border-radius: 6px; padding: 14px 18px; margin: 18px 0; }
+        .srcmap ul { margin: 6px 0 0; }
+        .srcmap li { font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; }
+        .badge { display: inline-block; background: #eaf3fb; color: #1a6fa8; border: 1px solid #bcd8ee; border-radius: 4px; font-size: 12px; padding: 1px 8px; margin-right: 6px; }
+        hr { border: none; border-top: 1px solid #e6e6e6; margin-top: 50px; }
+        .footer { text-align: center; color: #999; font-size: 13.5px; margin-top: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+<h1>第05章 第专项 MyBatis 关联映射综合实战 - 详细版</h1>
+<div class="subtitle">课程代码 1960229 · Java框架技术 · 配套项目：SpringSpringMVCMybatis（Spring 4.3.30.RELEASE + MyBatis 3.5.13）</div>
+<h2>一、学习目标</h2>
+<ol>
+<li>独立完成四种关联关系的映射实现（XML + 注解）</li>
+<li>掌握列名冲突的别名处理与主键归并技巧</li>
+<li>能用日志对比「嵌套结果」与「嵌套 select」的 SQL 条数</li>
+<li>完成 XML 与注解两套实现的对照总结</li>
+</ol>
+<h2>二、核心知识点</h2>
+<h3>四种关系在项目中的落点</h3>
+<p>所有实现都在 <code>com.chapter05</code> 两个 Mapper 与对应 XML 中。</p>
+<span class="badge">text</span><pre><code>com.chapter05.Chapter05EmpMapper
+├── one2oneByXml(empno)       # 一对一  XML  嵌套结果
+├── one2oneByAnn(empno)       # 一对一  注解  @One 嵌套 select
+├── many2oneByXml()           # 多对一  XML  一条 JOIN 查询全部
+├── many2oneByAnn()           # 多对一  注解 @One 嵌套 select
+├── many2manyByXml(empno)     # 多对多  XML  两次 JOIN + collection
+├── many2manyByAnn(empno)     # 多对多  注解 @Many
+├── selectSkillsByEmpno(empno)  # 多对多的子查询（中间表）
+└── selectListByDeptno(deptno)  # 一对多的子查询
+
+com.chapter05.Chapter05DeptMapper
+├── findById(deptno)          # 被 @One 引用
+├── one2manyByXml(deptno)     # 一对多  XML  collection 嵌套结果
+└── one2manyByAnn(deptno)     # 一对多  注解 @Many
+
+数据表：dept / emp / skill / emp_skill（sql/dept_emp.sql）</code></pre>
+<h2>四、项目源码对照</h2>
+<div class="srcmap">
+<strong>📁 本章对应项目源码（SpringSpringMVCMybatis）</strong>
+<ul>
+<li>src/main/java/com/chapter05/Chapter05EmpMapper.java</li>
+<li>src/main/java/com/chapter05/Chapter05DeptMapper.java</li>
+<li>src/main/resources/chapter05/mapper/Chapter05EmpMapper.xml</li>
+<li>src/main/resources/chapter05/mapper/Chapter05DeptMapper.xml</li>
+<li>src/test/java/com/chapter05/Chapter05Test.java</li>
+</ul>
+</div>
+<span class="filepath">src/test/java/com/chapter05/Chapter05Test.java</span>
+<p>这个用例把三种关系、两种实现方式的输出并排打印，非常适合对照验证。</p>
+<span class="badge">java</span><pre><code>    // ==================== XML vs 注解 对比 ====================
+
+    @Test
+    public void testComparison() {
+        System.out.println("========== XML vs 注解 方式对比 ==========");
+
+        System.out.println("\n--- 一对一 ---");
+        Emp empXml = empMapper.one2oneByXml(7369);
+        Emp empAnn = empMapper.one2oneByAnn(7369);
+        System.out.println("XML: 员工=" + empXml.getEname() + ", 部门=" + empXml.getDept().getDname());
+        System.out.println("Ann: 员工=" + empAnn.getEname() + ", 部门=" + empAnn.getDept().getDname());
+
+        System.out.println("\n--- 一对多 ---");
+        Dept deptXml = deptMapper.one2manyByXml(20);
+        Dept deptAnn = deptMapper.one2manyByAnn(20);
+        System.out.println("XML: " + deptXml.getDname() + " 员工数=" + deptXml.getEmps().size());
+        System.out.println("Ann: " + deptAnn.getDname() + " 员工数=" + deptAnn.getEmps().size());
+
+        System.out.println("\n--- 多对多 ---");
+        Emp empXmlM2M = empMapper.many2manyByXml(7566);
+        Emp empAnnM2M = empMapper.many2manyByAnn(7566);
+        System.out.println("XML: " + empXmlM2M.getEname() + " 技能数=" +
+                (empXmlM2M.getSkills() != null ? empXmlM2M.getSkills().size() : 0));
+        System.out.println("Ann: " + empAnnM2M.getEname() + " 技能数=" +
+                (empAnnM2M.getSkills() != null ? empAnnM2M.getSkills().size() : 0));
+    }</code></pre>
+<h2>五、运行结果</h2>
+<span class="badge">text</span><pre><code>========== XML vs 注解 方式对比 ==========
+
+--- 一对一 ---
+XML: 员工=SMITH, 部门=RESEARCH
+Ann: 员工=SMITH, 部门=RESEARCH
+
+--- 一对多 ---
+XML: RESEARCH 员工数=5
+Ann: RESEARCH 员工数=5
+
+--- 多对多 ---
+XML: JONES 技能数=2
+Ann: JONES 技能数=2</code></pre>
+<h2>六、注意事项与常见坑</h2>
+<div class="warning">
+<div class="note-title">⚠️ 两套实现必须输出一致</div>
+<ul>
+<li>同一个业务查询，XML 与注解的结果必须完全相同；不一致说明映射写错了。</li>
+<li>重点检查：主键标签、列名别名、select 路径。</li>
+</ul>
+</div>
+<div class="tip">
+<div class="note-title">✅ 交付自查清单</div>
+<ul>
+<li>四种关系的 association / collection 用对了</li>
+<li>JOIN 中冲突列都起了别名</li>
+<li>所有 resultMap 主键都用 <code>&lt;id&gt;</code></li>
+<li>@One/@Many 的 select 是接口全限定名</li>
+<li>记录了两种方案的 SQL 条数</li>
+</ul>
+</div>
+<h2>七、小结</h2>
+<div class="tip">
+<div class="note-title">✅ 本节要点</div>
+<ul>
+<li>四种关联关系全部实现完成，XML 与注解各一套且结果一致</li>
+<li>掌握了别名处理与主键归并两个关键技巧</li>
+<li>能定量说明嵌套结果与嵌套 select 的 SQL 条数差异</li>
+<li>产出了一份 XML / 注解 对照总结</li>
+</ul>
+</div>
+        <hr>
+        <p class="footer">Spring Core 教学课程 · 第05章 MyBatis关联映射与多表查询 · 第5-0 专项实验</p>
+    </div>
+</body>
+</html>

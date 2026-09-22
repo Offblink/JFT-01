@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chapter02.UserMapper">
+
+    <!-- ==================== 原有方法（保持兼容）==================== -->
+
+    <!-- 根据ID查询用户 -->
+    <select id="findById" parameterType="int" resultType="com.entity.User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+
+    <!-- 添加用户 -->
+    <insert id="addUser" parameterType="com.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user(username, password, email)
+        VALUES(#{username}, #{password}, #{email})
+    </insert>
+
+    <!-- 更新用户 -->
+    <update id="updateUser" parameterType="com.entity.User">
+        UPDATE user
+        SET username = #{username},
+            password = #{password},
+            email = #{email}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="deleteUser" parameterType="int">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+    <!-- ==================== 别名方法（与 HTML 教学一致）==================== -->
+
+    <!-- 根据ID查询用户（别名：selectById） -->
+    <select id="selectById" parameterType="int" resultType="com.entity.User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+
+    <!-- 添加用户（别名：insert） -->
+    <insert id="insert" parameterType="com.entity.User"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user(username, password, email)
+        VALUES(#{username}, #{password}, #{email})
+    </insert>
+
+    <!-- 更新用户（别名：update） -->
+    <update id="update" parameterType="com.entity.User">
+        UPDATE user
+        SET username = #{username},
+            password = #{password},
+            email = #{email}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除用户（别名：deleteById） -->
+    <delete id="deleteById" parameterType="int">
+        DELETE FROM user WHERE id = #{id}
+    </delete>
+
+    <!-- 查询所有用户（别名：selectAll） -->
+    <select id="selectAll" resultType="com.entity.User">
+        select id as uid , username, password ,email from `user`
+    </select>
+
+    <select id="selectAllVO" resultType="com.entity.Vo">
+        select id as p1 , username AS p2, password as p3 from `user`
+    </select>
+
+    <!--
+
+    为了替换resultType的使用resultMap 自由度更高 自定义一个返回类型 可以和任何的模型进行映射
+    id:自定义的类型的名
+    type:自定义的类型的类(有具体的哪个类做模版)
+     详细编写 映射规则  id 主键映射 只能出现一次 result 其他字段映射 可以出现多个
+
+     强调: resultMap 不能和 resultType 同时使用 互斥
+
+    -->
+
+    <resultMap id="userResultMap" type="com.entity.Vo">
+        <id     property="p1"          column="id"/>
+        <result property="p2"    column="username"/>
+        <result property="p3"    column="password"/>
+
+    </resultMap>
+    <select id="selectAllByVo" resultMap="userResultMap">
+        SELECT *  FROM user
+    </select>
+
+</mapper>

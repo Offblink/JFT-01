@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第01章第3节 Mybatis映射器的使用与注解开发 - 案例（详细版）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; font-size: 28px; }
+        h2 { color: #2980b9; margin: 35px 0 20px 0; padding-left: 15px; border-left: 4px solid #3498db; font-size: 22px; }
+        h3 { color: #16a085; margin: 25px 0 15px 0; font-size: 18px; }
+        h4 { color: #7f8c8d; margin: 20px 0 10px 0; font-size: 16px; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px 20px; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px 20px; margin: 20px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px 20px; margin: 20px 0; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 5px; overflow-x: auto; margin: 15px 0; }
+        code { font-family: 'Consolas', 'Monaco', monospace; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 5px 0; }
+        p { margin: 10px 0; }
+        .section { margin-bottom: 40px; }
+        .example { background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; }
+        .annotation { color: #e74c3c; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+            <a href="../../index.html">🏠 首页</a>
+            <span>></span>
+            <a href="../../案例/">💻 案例</a>
+            <span>></span>
+            <a href="../../案例/第01章/">第01章 Mybatis与Mybatis-Plus框架基础</a>
+            <span>></span>
+            <span>第3节 Mybatis映射器的使用与注解开发</span>
+        </div>
+
+        <div class="header">
+            <h1>💻 第01章第3节 Mybatis映射器的使用与注解开发 - 案例（详细版）</h1>
+            <p>完整代码示例 · 注解开发 · @Param · #{}和${} · SQL注入演示</p>
+            <div class="badge">⏱ 4学时（纯理论）</div>
+        </div>
+
+        <h2>📁 项目完整结构</h2>
+        <pre><code>mybatis-annotation-demo/
+├── pom.xml                          # Maven 配置文件
+├── src/
+│   ├── main/
+│   │   ├── java/
+│   │   │   └── com/example/
+│   │   │       ├── entity/          # 实体类包
+│   │   │       │   └── User.java    # 用户实体类
+│   │   │       └── mapper/          # Mapper 接口包
+│   │   │           ├── UserMapper.java          # XML 方式 Mapper
+│   │   │           ├── UserMapperAnnotation.java # 注解方式 Mapper
+│   │   │           └── UserMapperMixed.java     # 混合方式 Mapper
+│   │   └── resources/               # 资源文件目录
+│   │       ├── db.properties        # 数据库配置文件
+│   │       ├── log4j.properties     # 日志配置文件
+│   │       ├── mybatis-config.xml   # Mybatis 全局配置文件
+│   │       └── mapper/              # Mapper XML 目录
+│   │           ├── UserMapper.xml   # XML 方式 Mapper XML
+│   │           └── UserMapperMixed.xml # 混合方式 Mapper XML
+│   └── test/
+│       └── java/
+│           └── com/example/
+│               ├── UserMapperTest.java           # XML 方式测试类
+│               ├── UserMapperAnnotationTest.java # 注解方式测试类
+│               └── UserMapperMixedTest.java      # 混合方式测试类
+└── sql/
+    └── user.sql                       # 数据库初始化脚本</code></pre>
+
+        <hr>
+
+        <h2>📄 1. UserMapperAnnotation.java（注解方式完整示例）</h2>
+
+        <pre><code>package com.example.mapper;
+
+import com.example.entity.User;
+import org.apache.ibatis.annotations.*;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 用户 Mapper 接口（注解方式）
+ *
+ * 所有 SQL 语句都写在注解中，不需要 XML 文件
+ */
+public interface UserMapperAnnotation {
+
+    // ==================== 基础 CRUD ====================
+
+    /**
+     * 查询所有用户
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user")
+    List<User> findAll();
+
+    /**
+     * 根据 ID 查询用户
+     * @param id 用户ID
+     * @return 用户对象
+     */
+    @Select("SELECT * FROM user WHERE id = #{id}")
+    User findById(Integer id);
+
+    /**
+     * 添加用户（获取自增主键）
+     * @param user 用户对象
+     * @return 影响行数
+     */
+    @Insert("INSERT INTO user(username, password, email) VALUES(#{username}, #{password}, #{email})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int addUser(User user);
+
+    /**
+     * 更新用户
+     * @param user 用户对象
+     * @return 影响行数
+     */
+    @Update("UPDATE user SET username=#{username}, password=#{password}, email=#{email} WHERE id=#{id}")
+    int updateUser(User user);
+
+    /**
+     * 删除用户
+     * @param id 用户ID
+     * @return 影响行数
+     */
+    @Delete("DELETE FROM user WHERE id = #{id}")
+    int deleteUser(Integer id);
+
+    // ==================== 多参数传递（@Param 注解） ====================
+
+    /**
+     * 多条件查询（方式1：@Param 注解）
+     * @param username 用户名
+     * @param email 邮箱
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user WHERE username=#{username} AND email=#{email}")
+    List<User> findByNameAndEmail(@Param("username") String username, @Param("email") String email);
+
+    /**
+     * 多条件查询（方式2：Map 集合）
+     * @param map 包含查询条件的 Map
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user WHERE username=#{username} AND email=#{email}")
+    List<User> findUserByMap(Map<String, Object> map);
+
+    /**
+     * 多条件查询（方式3：实体类）
+     * @param user 包含查询条件的用户对象
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user WHERE username=#{username} AND email=#{email}")
+    List<User> findUserByEntity(User user);
+
+    // ==================== ${} 用法（慎用） ====================
+
+    /**
+     * 模糊查询（${} 用法，存在 SQL 注入风险）
+     * @param username 用户名（支持模糊匹配）
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user WHERE username LIKE '%${username}%'")
+    List<User> findByNameLike(@Param("username") String username);
+
+    /**
+     * 动态表名查询（${} 正确用法）
+     * @param tableName 表名
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM ${tableName}")
+    List<User> findAllByTableName(@Param("tableName") String tableName);
+
+    /**
+     * 动态排序（${} 正确用法）
+     * @param column 排序字段
+     * @param order 排序方式（ASC/DESC）
+     * @return 用户列表
+     */
+    @Select("SELECT * FROM user ORDER BY ${column} ${order}")
+    List<User> findByOrder(@Param("column") String column, @Param("order") String order);
+
+    // ==================== 用户登录（SQL 注入演示） ====================
+
+    /**
+     * 用户登录（不安全：使用 ${}）
+     * @param username 用户名
+     * @param password 密码
+     * @return 用户对象
+     */
+    @Select("SELECT * FROM user WHERE username = '${username}' AND password = '${password}'")
+    User loginUnsafe(@Param("username") String username, @Param("password") String password);
+
+    /**
+     * 用户登录（安全：使用 #{}）
+     * @param username 用户名
+     * @param password 密码
+     * @return 用户对象
+     */
+    @Select("SELECT * FROM user WHERE username = #{username} AND password = #{password}")
+    User loginSafe(@Param("username") String username, @Param("password") String password);
+}</code></pre>
+
+        <hr>
+
+        <h2>📄 2. UserMapperAnnotationTest.java（测试类完整示例）</h2>
+
+        <pre><code>package com.example;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapperAnnotation;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 注解方式 Mapper 测试类
+ *
+ * 测试 UserMapperAnnotation 接口的所有方法
+ */
+public class UserMapperAnnotationTest {
+
+    private InputStream is;
+    private SqlSession session;
+    private UserMapperAnnotation userMapper;
+
+    /**
+     * 初始化方法
+     */
+    @Before
+    public void init() throws IOException {
+        System.out.println("========== 初始化开始 ==========");
+        is = Resources.getResourceAsStream("mybatis-config.xml");
+        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is);
+        session = factory.openSession(true);
+        userMapper = session.getMapper(UserMapperAnnotation.class);
+        System.out.println("========== 初始化完成 ==========");
+    }
+
+    /**
+     * 销毁方法
+     */
+    @After
+    public void destroy() throws IOException {
+        System.out.println("========== 销毁开始 ==========");
+        if (session != null) session.close();
+        if (is != null) is.close();
+        System.out.println("========== 销毁完成 ==========");
+    }
+
+    // ==================== 测试基础 CRUD ====================
+
+    @Test
+    public void testFindAll() {
+        System.out.println("========== 测试查询所有用户 ==========");
+        List<User> users = userMapper.findAll();
+        for (User user : users) {
+            System.out.println(user);
+        }
+        assert users.size() > 0;
+    }
+
+    @Test
+    public void testFindById() {
+        System.out.println("========== 测试根据 ID 查询用户 ==========");
+        User user = userMapper.findById(1);
+        System.out.println(user);
+        assert user != null;
+        assert user.getId() == 1;
+    }
+
+    @Test
+    public void testAddUser() {
+        System.out.println("========== 测试添加用户 ==========");
+        User user = new User();
+        user.setUsername("注解用户");
+        user.setPassword("123456");
+        user.setEmail("annotation@qq.com");
+
+        int rows = userMapper.addUser(user);
+        System.out.println("影响行数：" + rows);
+        System.out.println("自增主键：" + user.getId());  // 获取自增主键
+        assert rows > 0;
+    }
+
+    // ==================== 测试多参数传递 ====================
+
+    @Test
+    public void testFindByNameAndEmail() {
+        System.out.println("========== 测试多参数传递（@Param） ==========");
+        List<User> users = userMapper.findByNameAndEmail("张三", "zhangsan@qq.com");
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    @Test
+    public void testFindUserByMap() {
+        System.out.println("========== 测试多参数传递（Map） ==========");
+        Map<String, Object> map = new HashMap<>();
+        map.put("username", "张三");
+        map.put("email", "zhangsan@qq.com");
+
+        List<User> users = userMapper.findUserByMap(map);
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    @Test
+    public void testFindUserByEntity() {
+        System.out.println("========== 测试多参数传递（实体类） ==========");
+        User user = new User();
+        user.setUsername("张三");
+        user.setEmail("zhangsan@qq.com");
+
+        List<User> users = userMapper.findUserByEntity(user);
+        for (User user2 : users) {
+            System.out.println(user2);
+        }
+    }
+
+    // ==================== 测试 ${} 用法 ====================
+
+    @Test
+    public void testFindByNameLike() {
+        System.out.println("========== 测试模糊查询（${}） ==========");
+        // 注意：这里存在 SQL 注入风险（演示用）
+        List<User> users = userMapper.findByNameLike("张");
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    @Test
+    public void testFindAllByTableName() {
+        System.out.println("========== 测试动态表名（${}） ==========");
+        List<User> users = userMapper.findAllByTableName("user");
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    @Test
+    public void testFindByOrder() {
+        System.out.println("========== 测试动态排序（${}） ==========");
+        List<User> users = userMapper.findByOrder("id", "DESC");
+        for (User user : users) {
+            System.out.println(user);
+        }
+    }
+
+    // ==================== 测试 SQL 注入 ====================
+
+    @Test
+    public void testSqlInjectionUnsafe() {
+        System.out.println("========== 测试 SQL 注入（不安全） ==========");
+        
+        // 正常登录
+        User user1 = userMapper.loginUnsafe("张三", "123456");
+        System.out.println("正常登录：" + user1);
+        
+        // SQL 注入攻击
+        System.out.println("开始 SQL 注入攻击...");
+        User user2 = userMapper.loginUnsafe("admin' -- ", "任意密码");
+        System.out.println("SQL 注入登录：" + user2);
+        
+        if (user2 != null) {
+            System.out.println("⚠️ 警告：SQL 注入攻击成功！");
+        } else {
+            System.out.println("✅ SQL 注入攻击失败（正常）");
+        }
+    }
+
+    @Test
+    public void testSqlInjectionSafe() {
+        System.out.println("========== 测试 SQL 注入（安全） ==========");
+        
+        // 正常登录
+        User user1 = userMapper.loginSafe("张三", "123456");
+        System.out.println("正常登录：" + user1);
+        
+        // SQL 注入攻击（失败）
+        System.out.println("开始 SQL 注入攻击...");
+        User user2 = userMapper.loginSafe("admin' -- ", "任意密码");
+        System.out.println("SQL 注入登录：" + user2);
+        
+        if (user2 != null) {
+            System.out.println("⚠️ 警告：SQL 注入攻击成功！");
+        } else {
+            System.out.println("✅ SQL 注入攻击失败（防御成功）");
+        }
+    }
+}</code></pre>
+
+        <hr>
+
+        <h2>📄 3. mybatis-config.xml（注册注解 Mapper）</h2>
+
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <properties resource="db.properties"/>
+
+    <settings>
+        <!-- 使用 Log4j 日志 -->
+        <setting name="logImpl" value="LOG4J"/>
+        <!-- 开启驼峰命名自动映射 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driver}"/>
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.username}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <mappers>
+        <!-- 注册 XML 方式 Mapper -->
+        <mapper resource="mapper/UserMapper.xml"/>
+        
+        <!-- 注册注解方式 Mapper（使用 class 属性） -->
+        <mapper class="com.example.mapper.UserMapperAnnotation"/>
+        
+        <!-- 注册混合方式 Mapper -->
+        <mapper class="com.example.mapper.UserMapperMixed"/>
+    </mappers>
+
+</configuration></code></pre>
+
+        <hr>
+
+        <h2>📄 4. 运行结果示例</h2>
+
+        <h3>测试1：SQL 注入攻击（不安全）</h3>
+        <pre><code>========== 测试 SQL 注入（不安全） ==========
+正常登录：User{id=1, username='张三', ...}
+开始 SQL 注入攻击...
+==>  Preparing: SELECT * FROM user WHERE username = 'admin' -- ' AND password = '任意密码'
+==> Parameters:
+<==      Total: 1
+SQL 注入登录：User{id=1, username='admin', ...}
+⚠️ 警告：SQL 注入攻击成功！</code></pre>
+
+        <h3>测试2：SQL 注入防御（安全）</h3>
+        <pre><code>========== 测试 SQL 注入（安全） ==========
+正常登录：User{id=1, username='张三', ...}
+开始 SQL 注入攻击...
+==>  Preparing: SELECT * FROM user WHERE username = ? AND password = ?
+==> Parameters: admin' -- (String), 任意密码(String)
+<==      Total: 0
+SQL 注入登录：null
+✅ SQL 注入攻击失败（防御成功）</code></pre>
+
+        <hr>
+
+        <h2>📝 常见问题与解决方案</h2>
+
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>问题</th>
+                    <th>原因</th>
+                    <th>解决方案</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Parameter 'XXX' not found</td>
+                    <td>多参数未使用 @Param 注解</td>
+                    <td>在方法参数前添加 @Param("参数名") 注解</td>
+                </tr>
+                <tr>
+                    <td>SQL 注入攻击成功</td>
+                    <td>使用 ${} 拼接用户输入</td>
+                    <td>改用 #{} 占位符；表名/列名用 ${} 时需校验输入</td>
+                </tr>
+                <tr>
+                    <td>注解方式不支持动态 SQL</td>
+                    <td>注解方式不适合复杂 SQL</td>
+                    <td>改用 XML 方式，或使用 &lt;script&gt; 标签（不推荐）</td>
+                </tr>
+                <tr>
+                    <td>自增主键获取失败</td>
+                    <td>未配置 @Options 注解</td>
+                    <td>添加 @Options(useGeneratedKeys = true, keyProperty = "id")</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <hr>
+
+        <h2>📝 案例总结</h2>
+        <ul>
+            <li>✅ 掌握注解开发完整语法（@Select、@Insert、@Update、@Delete、@Options）</li>
+            <li>✅ 掌握多参数传递三种方式（@Param、Map、实体类）</li>
+            <li>✅ 理解 #{} 和 ${} 的区别，掌握安全用法</li>
+            <li>✅ 能够演示 SQL 注入攻击与防御</li>
+            <li>✅ 掌握注解 Mapper 的注册方式</li>
+        </ul>
+
+        <div class="footer">
+            第01章 Mybatis与Mybatis-Plus框架基础 · 第3节 Mybatis映射器的使用与注解开发 · 4学时（纯理论）· 详细版
+        </div>
+    
+    </div>
+</body>
+</html>

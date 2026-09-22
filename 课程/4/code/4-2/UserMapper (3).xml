@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.chapter03.UserMapper">
+
+    <!--
+        ═══════════════════════════════════════════════════
+        第一部分：XML ResultMap（注解方式通过 @ResultMap 引用此 ID）
+        ═══════════════════════════════════════════════════
+        在标准的 XML 中定义，resultType 是一个默认的查询返回值类型 查询的结果直接对应select的查询结果集
+        resultType的要求是 查询结果的字段名称 一定要和封装类的属性变量名一致
+        如果使用ResultTYpe 出现多个与封装类属性不一致的情况 方式一: 使用SQl的别名进行调整
+
+        方式二: 使用ResultMap 进行调整 定义一个ResultMap 用于封装查询结果 ,重新的定义映射关系
+
+        ResultTYpe和ResultMap的区别: 是互斥的 不能同时使用
+    -->
+    <resultMap id="userResultMap" type="com.entity.User">
+        <id     property="id"          column="id"/>
+        <result property="username"    column="username"/>
+        <result property="password"    column="password"/>
+        <result property="email"       column="email"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateTime"  column="update_time"/>
+    </resultMap>
+
+
+
+
+    <!--
+        ═══════════════════════════════════════════════════
+        第二部分：动态 SQL（注解方式无法表达动态 SQL，必须用 XML）
+        ═══════════════════════════════════════════════════
+        select * from user
+        select * from user where id = ?
+        select * from user where username = ?
+        select * from user where email = ?
+        select * from user where username = ? and email = ?
+
+        动态的编译: 根据条件动态的编译sql 语句 条件主要根据参数的值进行判断
+
+    -->
+
+    <!--
+        1. <if> + <where>  条件查询
+           <where> 的作用：
+             · 如果没有任何条件 → 自动去掉 WHERE 关键字（不会语法错误）
+             · 如果第一个条件带了 AND → 自动去掉首个 AND
+           场景：多条件任意组合，有哪个查哪个
+    -->
+    <select id="findUsersByCondition" parameterType="com.entity.User"
+            resultMap="userResultMap">
+        SELECT * FROM user
+        <where>
+            <if test="username != null and username != ''">
+                AND username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+            <if test="id != null">
+                AND id = #{id}
+            </if>
+        </where>
+    </select>
+
+    <!--
+        2. <set>  动态更新
+           <set> 的作用：
+             · 自动加上 SET 关键字
+             · 自动去掉末尾多余的逗号
+           场景：只更新非空字段，避免把 null 写回数据库
+    -->
+    <update id="updateUserSelective" parameterType="com.entity.User">
+        UPDATE user
+        <set>
+            <if test="username != null">username = #{username},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!--
+        3. <choose>/<when>/<otherwise>  互斥分支
+           相当于 Java 的 if - else if - else
+           只命中第一个满足条件的 when，后续全部跳过
+           <otherwise> 兜底（相当于最后的 else）
+           场景：多个条件有优先级，只取最优先的那一个
+    -->
+    <select id="findUserPriority" parameterType="com.entity.User"
+            resultMap="userResultMap">
+        SELECT * FROM user
+        <where>
+            <choose>
+                <when test="id != null">
+                    id = #{id}
+                </when>
+                <when test="username != null and username != ''">
+                    username LIKE CONCAT('%', #{username}, '%')
+                </when>
+                <when test="email != null and email != ''">
+                    email = #{email}
+                </when>
+                <otherwise>
+                    1 = 1
+                </otherwise>
+            </choose>
+        </where>
+    </select>
+
+    <!--
+        4. <foreach>  批量查询（IN 条件）
+           属性说明：
+             collection="ids"   对应 Java 接口参数 @Param("ids")
+             item="id"          遍历中每个元素的变量名
+             open="("           开头
+             separator=","      分隔符
+             close=")"          结尾
+           拼接结果：WHERE id IN (1, 2, 3)
+    -->
+    <select id="findByIds" resultMap="userResultMap">
+        SELECT * FROM user
+        WHERE id IN
+        <foreach collection="ids" item="id"
+                 open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!--
+        5. <foreach>  批量插入
+           遍历 List<User>，每次迭代生成一条 VALUES 子句
+           collection="list"  对应 List<User> 参数（默认名称就是 list）
+           拼接结果：VALUES (?, ?, ...), (?, ?, ...), ...
+    -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        INSERT INTO user(username, password, email, create_time, update_time)
+        VALUES
+        <foreach collection="list" item="u" separator=",">
+            (#{u.username}, #{u.password}, #{u.email}, #{u.createTime}, #{u.updateTime})
+        </foreach>
+    </insert>
+
+    <!--
+        6. <trim>  自定义字符串裁剪
+           属性说明：
+             prefix="WHERE"          前缀（存在时才加上）
+             suffix=""               后缀
+             prefixOverrides="AND |OR "   去掉开头的 AND 或 OR
+             suffixOverrides=","      去掉末尾的逗号
+           <where> / <set> 本质上就是 <trim> 的特殊写法
+    -->
+    <select id="findUsersByTrim" parameterType="com.entity.User"
+            resultMap="userResultMap">
+        SELECT * FROM user
+        <trim prefix="WHERE" prefixOverrides="AND |OR ">
+            <if test="username != null and username != ''">
+                AND username LIKE CONCAT('%', #{username}, '%')
+            </if>
+            <if test="email != null and email != ''">
+                AND email = #{email}
+            </if>
+        </trim>
+    </select>
+
+    <!--
+        7. <include> 引用 <sql> 片段
+           refid 关联上面定义的 <sql> 的 id
+           <sql> 片段可以包含动态 SQL，被 <include> 插入后会继续解析
+    -->
+
+    <!--
+       <sql> 定义可复用的 SQL 片段，<include> 引用该片段
+       片段中可以包含动态 SQL 标签（<if>、<foreach> 等）
+   -->
+    <sql id="userColumns">
+        id, username, password, email, create_time, update_time
+    </sql>
+
+    <sql id="commonWhereCondition">
+        <if test="username != null and username != ''">
+            AND username LIKE CONCAT('%', #{username}, '%')
+        </if>
+        <if test="email != null and email != ''">
+            AND email = #{email}
+        </if>
+    </sql>
+
+    <select id="findUsersWithInclude" parameterType="com.entity.User"
+            resultMap="userResultMap">
+        SELECT <include refid="userColumns"/> FROM user
+        <where>
+            <include refid="commonWhereCondition"/>
+        </where>
+    </select>
+
+    <!--
+        1.xml的配置 sqlsession.selectlist/one(包名.方法名)
+        2.注解的配置 接口+注解 @Select/@Insert/@Update/@Delete
+        3.param("param")  注解参数，对应 XML 中的 #{param}
+        4.#{ } 和 ${}  的区别
+        5.resultMap  和 resultType  : mybatis的映射是模型类 与 数据库查询结果字段的映射关系
+        6. 动态SQL的使用  ：<if>、<foreach>、<where> 等标签  组合使用
+
+    -->
+
+</mapper>

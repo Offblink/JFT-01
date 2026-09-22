@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>第01章第1节 Mybatis的组件 - 详细版</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', Arial, sans-serif; line-height: 1.8; color: #333; background: #f5f5f5; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: #fff; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 15px; margin-bottom: 30px; }
+        h2 { color: #2980b9; border-left: 4px solid #3498db; padding-left: 15px; margin-top: 40px; }
+        h3 { color: #16a085; margin-top: 30px; }
+        h4 { color: #7f8c8d; margin-top: 20px; }
+        pre { background: #2d2d2d; color: #f8f8f2; padding: 20px; border-radius: 5px; overflow-x: auto; }
+        code { font-family: 'Consolas', 'Monaco', monospace; }
+        .note { background: #e8f4f8; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0; }
+        .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+        .tip { background: #d4edda; border-left: 4px solid #28a745; padding: 15px; margin: 20px 0; }
+        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        ul, ol { margin: 15px 0; padding-left: 30px; }
+        li { margin: 8px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>第01章第1节 Mybatis的组件 - 详细版</h1>
+        
+        <h2>一、实验目标</h2>
+        <ol>
+            <li><strong>环境配置</strong>：完成 Maven、Git、AI 插件全套环境配置</li>
+            <li><strong>项目搭建</strong>：创建标准化 Mybatis 项目结构</li>
+            <li><strong>配置编写</strong>：编写 mybatis-config.xml、db.properties、Mapper.xml</li>
+            <li><strong>代码开发</strong>：创建实体类、Mapper 接口、测试类</li>
+            <li><strong>运行调试</strong>：成功运行首个 Mybatis 查询案例，排查常见问题</li>
+        </ol>
+        
+        <h2>二、实验流程（6学时分解）</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>学时</th>
+                    <th>内容</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>第1学时</td>
+                    <td>Maven、Git、AI 插件环境配置</td>
+                    <td>安装、配置、测试</td>
+                </tr>
+                <tr>
+                    <td>第2学时</td>
+                    <td>创建 Mybatis 项目、配置 pom.xml</td>
+                    <td>项目初始化、依赖管理</td>
+                </tr>
+                <tr>
+                    <td>第3学时</td>
+                    <td>编写配置文件（mybatis-config.xml、db.properties）</td>
+                    <td>配置数据库连接、Mapper 注册</td>
+                </tr>
+                <tr>
+                    <td>第4学时</td>
+                    <td>创建实体类、Mapper 接口、Mapper XML</td>
+                    <td>代码开发、AI 辅助生成</td>
+                </tr>
+                <tr>
+                    <td>实验第1-2学时</td>
+                    <td>编写测试类、运行首个程序、问题排查</td>
+                    <td>测试、调试、优化</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>三、第1学时：环境配置详细步骤</h2>
+        
+        <h3>3.1 Maven 环境配置</h3>
+        
+        <h4>操作1：下载并安装 Maven</h4>
+        <ol>
+            <li>访问 Maven 官网：<code>https://maven.apache.org/download.cgi</code></li>
+            <li>下载 <code>apache-maven-3.9.x-bin.zip</code></li>
+            <li>解压到 <code>D:\apache-maven-3.9.x</code>（路径不要有中文和空格）</li>
+        </ol>
+        
+        <h4>操作2：配置环境变量</h4>
+        <ol>
+            <li>右键 <code>此电脑 → 属性 → 高级系统设置 → 环境变量</code></li>
+            <li>新建系统变量：
+                <ul>
+                    <li>变量名：<code>MAVEN_HOME</code></li>
+                    <li>变量值：<code>D:\apache-maven-3.9.x</code></li>
+                </ul>
+            </li>
+            <li>编辑 Path 变量，添加：<code>%MAVEN_HOME%\bin</code></li>
+            <li>测试：打开 CMD，输入 <code>mvn -v</code>，显示版本信息即成功</li>
+        </ol>
+        
+        <pre><code>C:\Users\Administrator>mvn -v
+Apache Maven 3.9.6 (...)
+Maven home: D:\apache-maven-3.9.x
+Java version: 1.8.0_391, vendor: Oracle Corporation</code></pre>
+        
+        <h4>操作3：配置阿里云镜像（加速依赖下载）</h4>
+        <ol>
+            <li>打开 <code>D:\apache-maven-3.9.x\conf\settings.xml</code></li>
+            <li>找到 <code>&lt;mirrors&gt;</code> 标签，添加阿里云镜像：</li>
+        </ol>
+        
+        <pre><code><mirrors>
+    <mirror>
+        <id>alimaven</id>
+        <name>aliyun maven</name>
+        <url>https://maven.aliyun.com/repository/public</url>
+        <mirrorOf>central</mirrorOf>
+    </mirror>
+</mirrors></code></pre>
+        
+        <h4>操作4：IDEA 集成 Maven</h4>
+        <ol>
+            <li>打开 IDEA，点击 <code>File → Settings → Build, Execution, Deployment → Build Tools → Maven</code></li>
+            <li>设置：
+                <ul>
+                    <li>Maven home directory：<code>D:\apache-maven-3.9.x</code></li>
+                    <li>User settings file：<code>D:\apache-maven-3.9.x\conf\settings.xml</code></li>
+                    <li>Local repository：<code>D:\maven-repository</code>（自定义本地仓库路径）</li>
+                </ul>
+            </li>
+            <li>点击 <code>Apply → OK</code></li>
+        </ol>
+        
+        <h3>3.2 Git 环境配置</h3>
+        
+        <h4>操作1：下载并安装 Git</h4>
+        <ol>
+            <li>访问 Git 官网：<code>https://git-scm.com/download/win</code></li>
+            <li>下载 <code>Git-2.43.x-64-bit.exe</code></li>
+            <li>安装时选择：
+                <ul>
+                    <li>Select Components：全部勾选</li>
+                    <li>Choosing the default editor：选择 <code>Use Visual Studio Code as Git's editor</code></li>
+                    <li>Adjusting your PATH environment：选择 <code>Git from the command line and also from 3rd-party software</code></li>
+                </ul>
+            </li>
+        </ol>
+        
+        <h4>操作2：配置 Git 用户名和邮箱</h4>
+        <ol>
+            <li>打开 CMD 或 Git Bash，输入：</li>
+        </ol>
+        
+        <pre><code>git config --global user.name "Your Name"
+git config --global user.email "your.email@example.com"</code></pre>
+        
+        <ol start="2">
+            <li>验证配置：</li>
+        </ol>
+        
+        <pre><code>git config --list</code></pre>
+        
+        <h4>操作3：IDEA 集成 Git</h4>
+        <ol>
+            <li>打开 IDEA，点击 <code>File → Settings → Version Control → Git</code></li>
+            <li>设置 Path to Git executable：<code>D:\Git\bin\git.exe</code></li>
+            <li>点击 <code>Test</code>，显示版本信息即成功</li>
+            <li>点击 <code>Apply → OK</code></li>
+        </ol>
+        
+        <h4>操作4：Git 基本操作演练</h4>
+        <ol>
+            <li>创建本地仓库：</li>
+        </ol>
+        
+        <pre><code># 打开项目目录
+cd D:\mybatis-demo
+
+# 初始化本地仓库
+git init
+
+# 查看状态
+git status</code></pre>
+        
+        <ol start="2">
+            <li>添加文件到暂存区、提交到本地仓库：</li>
+        </ol>
+        
+        <pre><code># 添加所有文件
+git add .
+
+# 提交到本地仓库
+git commit -m "首次提交：创建 Mybatis 项目"
+
+# 查看提交历史
+git log</code></pre>
+        
+        <h3>3.3 AI 插件安装</h3>
+        
+        <h4>操作1：安装通义灵码</h4>
+        <ol>
+            <li>打开 IDEA，点击 <code>File → Settings → Plugins</code></li>
+            <li>在 Marketplace 搜索 <code>通义灵码</code></li>
+            <li>点击 <code>Install</code> 安装</li>
+            <li>重启 IDEA</li>
+            <li>激活：
+                <ul>
+                    <li>点击右上角 <code>通义灵码</code> 图标</li>
+                    <li>登录阿里云账号（或注册新账号）</li>
+                    <li>完成激活</li>
+                </ul>
+            </li>
+        </ol>
+        
+        <h4>操作2：安装 GitHub Copilot（可选）</h4>
+        <ol>
+            <li>打开 IDEA，点击 <code>File → Settings → Plugins</code></li>
+            <li>在 Marketplace 搜索 <code>GitHub Copilot</code></li>
+            <li>点击 <code>Install</code> 安装</li>
+            <li>重启 IDEA</li>
+            <li>激活：
+                <ul>
+                    <li>点击右上角 <code>Copilot</code> 图标</li>
+                    <li>登录 GitHub 账号（需要订阅 Copilot 服务）</li>
+                    <li>完成激活</li>
+                </ul>
+            </li>
+        </ol>
+        
+        <h4>操作3：测试 AI 插件功能</h4>
+        <ol>
+            <li>在 pom.xml 中输入注释：</li>
+        </ol>
+        
+        <pre><code>&lt;!-- Mybatis dependency --&gt;</code></pre>
+        
+        <ol start="2">
+            <li>按 <code>Enter</code>，AI 会自动提示添加 Mybatis 依赖代码</li>
+            <li>按 <code>Tab</code> 接受建议</li>
+        </ol>
+        
+        <h2>四、第2学时：创建 Mybatis 项目详细步骤</h2>
+        
+        <h3>4.1 创建 Maven 项目</h3>
+        <ol>
+            <li>打开 IDEA，点击 <code>File → New → Project</code></li>
+            <li>选择 <code>Maven</code>，设置：
+                <ul>
+                    <li>Name：<code>mybatis-demo</code></li>
+                    <li>Location：<code>D:\mybatis-demo</code></li>
+                    <li>Language：<code>Java</code></li>
+                    <li>Build system：<code>Maven</code></li>
+                    <li>JDK：<code>1.8</code></li>
+                    <li>GroupId：<code>com.example</code></li>
+                    <li>ArtifactId：<code>mybatis-demo</code></li>
+                </ul>
+            </li>
+            <li>点击 <code>Create</code></li>
+        </ol>
+        
+        <h3>4.2 配置 pom.xml</h3>
+        <p><strong>完整 pom.xml 配置：</strong></p>
+        
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="
+         http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>mybatis-demo</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Mybatis -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.5.13</version>
+        </dependency>
+
+        <!-- MySQL 驱动 -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+
+        <!-- Junit 测试 -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Lombok（可选，简化实体类） -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.30</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- 编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project></code></pre>
+        
+        <div class="note">
+            <strong>注意事项：</strong>
+            <ul>
+                <li>如果依赖下载失败，检查 Maven 阿里云镜像配置</li>
+                <li>查看本地仓库路径：<code>D:\maven-repository</code></li>
+                <li>手动下载依赖：右键项目 → <code>Maven → Reload Project</code></li>
+            </ul>
+        </div>
+        
+        <h2>五、第3学时：编写配置文件详细步骤</h2>
+        
+        <h3>5.1 创建 db.properties（数据库配置）</h3>
+        <ol>
+            <li>在 <code>src/main/resources</code> 目录下创建 <code>db.properties</code></li>
+            <li>编写配置：</li>
+        </ol>
+        
+        <pre><code># 数据库驱动
+jdbc.driver=com.mysql.cj.jdbc.Driver
+
+# 数据库连接URL（注意：serverTimezone=UTC 解决时区问题）
+jdbc.url=jdbc:mysql://localhost:3306/mybatis_db?useSSL=false&serverTimezone=UTC&characterEncoding=utf8
+
+# 数据库用户名
+jdbc.username=root
+
+# 数据库密码（修改为你的密码）
+jdbc.password=123456</code></pre>
+        
+        <div class="warning">
+            <strong>常见问题：</strong>
+            <ul>
+                <li><strong>时区错误</strong>：添加 <code>serverTimezone=UTC</code> 或 <code>serverTimezone=Asia/Shanghai</code></li>
+                <li><strong>SSL 警告</strong>：添加 <code>useSSL=false</code></li>
+                <li><strong>编码问题</strong>：添加 <code>characterEncoding=utf8</code></li>
+            </ul>
+        </div>
+        
+        <h3>5.2 创建 mybatis-config.xml（Mybatis 全局配置）</h3>
+        <ol>
+            <li>在 <code>src/main/resources</code> 目录下创建 <code>mybatis-config.xml</code></li>
+            <li>编写配置：</li>
+        </ol>
+        
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <!-- 引入配置文件 -->
+    <properties resource="db.properties"/>
+
+    <!-- 全局参数设置 -->
+    <settings>
+        <!-- 开启驼峰命名自动映射 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 控制台打印 SQL 语句 -->
+        <setting name="logImpl" value="STDOUT_LOGGING"/>
+    </settings>
+
+    <!-- 环境配置 -->
+    <environments default="development">
+        <environment id="development">
+            <!-- 事务管理器 -->
+            <transactionManager type="JDBC"/>
+            <!-- 数据源（POOLED：使用连接池） -->
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driver}"/>
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.username}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!-- 注册 Mapper -->
+    <mappers>
+        <mapper resource="mapper/UserMapper.xml"/>
+    </mappers>
+</configuration></code></pre>
+        
+        <p><strong>配置说明：</strong></p>
+        <ul>
+            <li><code>&lt;properties&gt;</code>：引入外部配置文件（db.properties）</li>
+            <li><code>&lt;settings&gt;</code>：全局参数设置（驼峰命名、日志实现）</li>
+            <li><code>&lt;environments&gt;</code>：环境配置（可以配置多个环境，如 development、test、production）</li>
+            <li><code>&lt;mappers&gt;</code>：注册 Mapper XML 文件（告诉 Mybatis 去哪里找 SQL 语句）</li>
+        </ul>
+        
+        <h3>5.3 创建 Mapper XML 文件</h3>
+        <ol>
+            <li>在 <code>src/main/resources</code> 目录下创建 <code>mapper</code> 文件夹</li>
+            <li>在 <code>mapper</code> 文件夹中创建 <code>UserMapper.xml</code></li>
+            <li>编写配置：</li>
+        </ol>
+        
+        <pre><code><?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.mapper.UserMapper">
+    <!--
+        namespace：命名空间，对应 Mapper 接口的全限定名
+        必须一致，否则 Mybatis 无法找到对应的接口方法
+    -->
+
+    <!-- 查询所有用户 -->
+    <select id="findAll" resultType="com.example.entity.User">
+        SELECT * FROM user
+    </select>
+
+    <!-- 根据 ID 查询用户 -->
+    <select id="findById" parameterType="int" resultType="com.example.entity.User">
+        SELECT * FROM user WHERE id = #{id}
+    </select>
+
+</mapper></code></pre>
+        
+        <p><strong>配置说明：</strong></p>
+        <ul>
+            <li><code>namespace</code>：命名空间，对应 Mapper 接口的全限定名</li>
+            <li><code>&lt;select&gt;</code>：查询标签
+                <ul>
+                    <li><code>id</code>：唯一标识，对应 Mapper 接口的方法名</li>
+                    <li><code>parameterType</code>：参数类型（可选，Mybatis 可以自动推断）</li>
+                    <li><code>resultType</code>：返回值类型（实体类的全限定名）</li>
+                </ul>
+            </li>
+        </ul>
+        
+        <h2>六、第4学时：创建实体类、Mapper 接口详细步骤</h2>
+        
+        <h3>6.1 创建实体类 User.java</h3>
+        <ol>
+            <li>在 <code>src/main/java</code> 目录下创建包：<code>com.example.entity</code></li>
+            <li>创建 <code>User.java</code> 类</li>
+        </ol>
+        
+        <pre><code>package com.example.entity;
+
+/**
+ * 用户实体类
+ * 对应数据库表：user
+ */
+public class User {
+    // 字段（对应数据库表的列）
+    private Integer id;       // 用户ID
+    private String username;  // 用户名
+    private String password;  // 密码
+    private String email;     // 邮箱
+
+    // 构造方法
+    public User() {
+    }
+
+    // getter 和 setter 方法（必须有，否则 Mybatis 无法封装数据）
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    // toString 方法（方便调试）
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", email='" + email + '\'' +
+                '}';
+    }
+}</code></pre>
+        
+        <div class="note">
+            <strong>注意事项：</strong>
+            <ul>
+                <li>实体类必须有 <strong>无参构造方法</strong>（Mybatis 反射创建对象需要）</li>
+                <li>字段名与数据库列名一致（如果不一致，需要使用 ResultMap 映射）</li>
+                <li>建议使用包装类型（Integer 而不是 int），避免 NULL 值问题</li>
+            </ul>
+        </div>
+        
+        <h3>6.2 创建 Mapper 接口 UserMapper.java</h3>
+        <ol>
+            <li>在 <code>src/main/java</code> 目录下创建包：<code>com.example.mapper</code></li>
+            <li>创建 <code>UserMapper.java</code> 接口</li>
+        </ol>
+        
+        <pre><code>package com.example.mapper;
+
+import com.example.entity.User;
+import java.util.List;
+
+/**
+ * 用户 Mapper 接口
+ * 对应 Mapper XML：UserMapper.xml
+ */
+public interface UserMapper {
+
+    /**
+     * 查询所有用户
+     * @return 用户列表
+     */
+    List<User> findAll();
+
+    /**
+     * 根据 ID 查询用户
+     * @param id 用户ID
+     * @return 用户对象
+     */
+    User findById(Integer id);
+}</code></pre>
+        
+        <div class="note">
+            <strong>注意事项：</strong>
+            <ul>
+                <li>Mapper 接口的方法名必须与 Mapper XML 中的 SQL 语句 id 一致</li>
+                <li>返回值类型必须与 Mapper XML 中的 resultType 一致</li>
+                <li>参数类型必须与 Mapper XML 中的 parameterType 一致</li>
+            </ul>
+        </div>
+        
+        <h2>七、实验第1-2学时：编写测试类、运行程序、问题排查</h2>
+        
+        <h3>7.1 创建测试类 MybatisTest.java</h3>
+        <ol>
+            <li>在 <code>src/test/java</code> 目录下创建包：<code>com.example</code></li>
+            <li>创建 <code>MybatisTest.java</code> 测试类</li>
+        </ol>
+        
+        <pre><code>package com.example;
+
+import com.example.entity.User;
+import com.example.mapper.UserMapper;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
+/**
+ * Mybatis 测试类
+ */
+public class MybatisTest {
+
+    @Test
+    public void testFindAll() throws IOException {
+        // 1. 加载配置文件
+        InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+
+        // 2. 创建 SqlSessionFactory
+        SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is);
+
+        // 3. 创建 SqlSession
+        SqlSession session = factory.openSession();
+
+        // 4. 获取 Mapper 代理对象
+        UserMapper userMapper = session.getMapper(UserMapper.class);
+
+        // 5. 执行查询
+        List<User> users = userMapper.findAll();
+
+        // 6. 遍历结果
+        for (User user : users) {
+            System.out.println(user);
+        }
+
+        // 7. 关闭资源
+        session.close();
+        is.close();
+    }
+}</code></pre>
+        
+        <h3>7.2 运行测试类</h3>
+        <ol>
+            <li>右键 <code>testFindAll()</code> 方法</li>
+            <li>选择 <code>Run 'testFindAll()'</code></li>
+            <li>查看控制台输出</li>
+        </ol>
+        
+        <p><strong>成功输出：</strong></p>
+        <pre><code>User{id=1, username='张三', password='123', email='zhangsan@qq.com'}
+User{id=2, username='李四', password='456', email='lisi@qq.com'}
+User{id=3, username='王五', password='789', email='wangwu@qq.com'}</code></pre>
+        
+        <h3>7.3 常见问题排查</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>问题</th>
+                    <th>原因</th>
+                    <th>解决方案</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>ClassNotFoundException: com.mysql.cj.jdbc.Driver</td>
+                    <td>MySQL 驱动依赖未下载</td>
+                    <td>检查 pom.xml，手动下载依赖</td>
+                </tr>
+                <tr>
+                    <td>SQLException: The server time zone value</td>
+                    <td>时区错误</td>
+                    <td>在 db.properties 中添加 serverTimezone=UTC</td>
+                </tr>
+                <tr>
+                    <td>BindingException: Invalid bound statement</td>
+                    <td>Mapper 接口与 XML 不匹配</td>
+                    <td>检查 namespace、id 是否一致</td>
+                </tr>
+                <tr>
+                    <td>NullPointerException</td>
+                    <td>SqlSession 未开启自动提交</td>
+                    <td>使用 factory.openSession(true) 或手动 commit</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>八、实验总结</h2>
+        <div class="tip">
+            <ul>
+                <li>✅ 完成 Maven、Git、AI 插件全套环境配置</li>
+                <li>✅ 创建标准化 Mybatis 项目结构</li>
+                <li>✅ 编写配置文件（mybatis-config.xml、db.properties、UserMapper.xml）</li>
+                <li>✅ 创建实体类、Mapper 接口、测试类</li>
+                <li>✅ 成功运行首个 Mybatis 查询案例</li>
+                <li>✅ 掌握常见问题的排查方法</li>
+            </ul>
+        </div>
+        
+        <hr style="margin-top: 50px;">
+        <p style="text-align: center; color: #999; font-size: 14px;">
+            Spring Core 教学课程 - 第01章 MyBatis基础与核心组件 - 第1节
+        </p>
+    </div>
+</body>
+</html>
