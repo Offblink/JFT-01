@@ -28,7 +28,7 @@ import static org.junit.Assert.assertTrue;
  *       本项目统一走 {@link MyBatisUtil}（全项目共用一个工厂）；</li>
  *   <li>老师只打印不断言，这里补上断言 —— 打印给人看，断言给回归看。</li>
  * </ol>
- * 数据来自 {@code sql/ssm_emp.sql} + {@code sql/dept_skill.sql}：张伟(1) 会 Java+MySQL，李娜(2) 会 Vue，
+ * 数据来自 {@code sql/实验一/ssm_emp.sql} + {@code sql/第5章/dept_skill.sql}：张伟(1) 会 Java+MySQL，李娜(2) 会 Vue，
  * 王强(3) 会 Axure，赵敏(4) 一项技能都没有。用例全部只读，跑多少次结果都一样。
  */
 public class EmpRelationMapperTest {
