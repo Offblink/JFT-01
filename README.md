@@ -79,8 +79,8 @@ mvn test
 │   ├── db.properties                              # 连接配置（占位）
 │   ├── mybatis-config.xml                         # logImpl=SLF4J、驼峰、typeAliases、延迟加载、mapper 注册
 │   ├── logback.xml                                # 日志：控制台 + logs/mybatis.log 滚动文件
-│   ├── mapper/UserMapper.xml                      # 扁平目录 → <mapper resource> 注册
-│   └── com/offblink/mapper/*.xml                  # 与接口同包同名 → <mapper class> 注册
+│   ├── com/offblink/mapper/*.xml                  # 与接口同包同名（UserMapper/EmpMapper/EmpRelationMapper/
+│   │                                              #   DeptRelationMapper）→ mybatis-config 里一条 <package> 扫包注册
 ├── src/main/webapp/                               # JavaEE web 骨架
 ├── src/test/java/com/offblink/                    # UserMapperTest / UserMapperAnnotationTest
 │   │                                              # EmpMapperTest / EmpMapperMpTest / EmpRelationMapperTest

@@ -8,7 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 用户 Mapper 接口，映射 resources/mapper/UserMapper.xml
+ * 用户 Mapper 接口，映射 resources/com/offblink/mapper/UserMapper.xml
+ * （与接口同包同名，由 mybatis-config.xml 的 {@code <package>} 扫包注册）
  */
 
 public interface UserMapper {
