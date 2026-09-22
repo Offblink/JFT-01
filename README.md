@@ -1,14 +1,30 @@
-# JFT-01 · mybatis01
+# JFT-e1 · 实验一（MyBatis / MyBatis-Plus）+ 第 5 章关联映射
 
 《JAVA框架技术（一）》（AI 赋能版）课程项目。以 AI 辅助、人脑主导的方式完成，全程保留开发轨迹
-（Git 提交历史即过程记录）。当前进度：**实验一（MyBatis + MyBatis-Plus）** + **第 5 章 关联映射与多表查询**。
+（Git 提交历史即过程记录）。
+
+**一个实验一个项目**：本仓库装的是 **实验一**（因此叫 `JFT-e1`，war 包名同为 `JFT-e1.war`），
+里面还带一条第 5 章「关联映射与多表查询」的专项练习线。后续的实验二（SSM 整合 + EMP MIS）会另起项目。
+
+## 源码怎么分（按实验/章分包）
+
+```
+com.offblink.entity     跨线共用实体：User / Vo（实验一）、Emp（两条线都用）、Dept / Skill（第 5 章）
+com.offblink.util       MyBatisUtil —— 会话工厂（通用工厂 + MP 分页专用工厂）
+com.offblink.lab01      实验一：UserMapper、UserMapperAnnotation、EmpMapper（MP 线）
+com.offblink.chapter05  第 5 章：EmpRelationMapper、DeptRelationMapper（XML + 注解两套关联查询）
+```
+
+Mapper 接口与它的 XML **同包同名**放在一起（`src/main/resources/com/offblink/<同一个包>/Xxx.xml`），
+`mybatis-config.xml` 里每个包一行 `<package name="com.offblink.xxx"/>` 扫包注册，不再手写
+`<mapper resource>` / `<mapper class>`。新增一个实验就加一个包 + 一行注册，互不干扰。
 
 ## 技术栈
 
 | 类别 | 选型 |
 |---|---|
 | 语言 / JDK | Java 8 语法目标（IDEA 运行 JDK 见下） |
-| 构建 | Maven 3.9.x（阿里云镜像），war 打包 |
+| 构建 | Maven 3.9.x（阿里云镜像），war 打包（产物 `JFT-e1.war`） |
 | 持久层 | MyBatis-Plus 3.5.3.1（内置 MyBatis 3.5.10，`EmpMapper extends BaseMapper`） |
 | 数据库 | MySQL 8/9（`mysql-connector-j` 8.0.33） |
 | 测试 | JUnit 4.13.2 |
@@ -17,7 +33,7 @@
 
 ## 功能
 
-**实验一：MyBatis 环境搭建 + CRUD + 动态 SQL + MyBatis-Plus**
+**实验一（`com.offblink.lab01`，38 个用例）**
 
 - 用户表完整 CRUD：`findAll` / `findById` / `addUser`（自增主键回填）/ `updateUser` / `deleteUser`
 - 用户名模糊查询 `findByUsernameLike`（`LIKE CONCAT('%', #{keyword}, '%')` 预编译防注入）
@@ -34,7 +50,7 @@
 - emp 载体（指导书任务 2/3 要求）：`ssm_emp.employer` 表 + `EmpMapper`（resultMap / sql 片段 / 批量插入 /
   `<foreach>` IN 按岗位查询 / 分号拼多条 UPDATE 的一次性批量更新）
 
-**第 5 章：关联映射与多表查询（XML 版 + 注解版各一套）**
+**第 5 章（`com.offblink.chapter05`，9 个用例）**
 
 | 关系 | XML 方式（嵌套结果，1 条 SQL） | 注解方式（嵌套 select，1+N 条） |
 |---|---|---|
@@ -42,13 +58,15 @@
 | 一对多 | `DeptRelationMapper.one2manyByXml`（`<collection ofType="Emp">`） | `one2manyByAnn`（`@Many`） |
 | 多对多 | `EmpRelationMapper.many2manyByXml`（两次 JOIN 穿中间表） | `many2manyByAnn`（`@Many` 调 `selectSkillsByEmpId`） |
 
+实测结论（SQL 条数、与讲义不一致的三处）见 [docs/第5章/关联映射实测记录.md](docs/第5章/关联映射实测记录.md)。
+
 ## 快速开始
 
 ```bash
 # 1. 建库建表（MySQL 8+）——实验一建库建表在前，第 5 章的关联三表在其后执行
 mysql -u root -p < sql/实验一/user_db.sql
 mysql -u root -p < sql/实验一/ssm_emp.sql
-mysql -u root -p < sql/第5章/dept_skill.sql     # 可重复执行（会补 dept/skill/employer_skill + employer.dept_id）
+mysql -u root -p < sql/第5章/dept_skill.sql     # 可重复执行（补 dept/skill/employer_skill + employer.dept_id）
 
 # 2. 配置数据库连接（占位符改为你自己的本地配置）
 #    src/main/resources/db.properties
@@ -66,24 +84,26 @@ mvn test
 ## 项目结构
 
 ```
+JFT-e1/
 ├── sql/
 │   ├── 实验一/{user_db.sql, ssm_emp.sql}          # mybatis_db / ssm_emp 建库建表 + 种子数据
 │   └── 第5章/dept_skill.sql                       # dept / skill / employer_skill 中间表 + employer.dept_id
 ├── src/main/java/com/offblink/
-│   ├── entity/{Emp, User, Vo}.java                # 实验一实体
+│   ├── entity/{User, Vo, Emp}.java                # 实验一实体（Emp 同时是第 5 章的"多"方）
 │   ├── entity/{Dept, Skill}.java                  # 第 5 章：关联映射的"一方"与多对多另一侧
-│   ├── mapper/{EmpMapper, UserMapper, UserMapperAnnotation}.java
-│   ├── mapper/{EmpRelationMapper, DeptRelationMapper}.java       # 第 5 章：XML + 注解两套关联查询
+│   ├── lab01/{UserMapper, UserMapperAnnotation, EmpMapper}.java          # 实验一（MP 也在这一包）
+│   ├── chapter05/{EmpRelationMapper, DeptRelationMapper}.java            # 第 5 章：XML + 注解两套关联查询
 │   └── util/MyBatisUtil.java                      # 会话工厂（通用工厂 + MP 分页专用工厂）
 ├── src/main/resources/
-│   ├── db.properties                              # 连接配置（占位）
-│   ├── mybatis-config.xml                         # logImpl=SLF4J、驼峰、typeAliases、延迟加载、mapper 注册
-│   ├── logback.xml                                # 日志：控制台 + logs/mybatis.log 滚动文件
-│   ├── com/offblink/mapper/*.xml                  # 与接口同包同名（UserMapper/EmpMapper/EmpRelationMapper/
-│   │                                              #   DeptRelationMapper）→ mybatis-config 里一条 <package> 扫包注册
+│   ├── db.properties                              # 连接配置（占位，skip-worktree）
+│   ├── mybatis-config.xml                         # logImpl=SLF4J、驼峰、typeAliases、延迟加载、两行 <package> 注册
+│   ├── logback.xml                                # 日志：控制台 + logs/mybatis.log 滚动文件（com.offblink 整包 DEBUG）
+│   ├── com/offblink/lab01/{UserMapper, EmpMapper}.xml        # 与接口同包同名
+│   └── com/offblink/chapter05/{EmpRelationMapper, DeptRelationMapper}.xml
 ├── src/main/webapp/                               # JavaEE web 骨架
-├── src/test/java/com/offblink/                    # UserMapperTest / UserMapperAnnotationTest
-│   │                                              # EmpMapperTest / EmpMapperMpTest / EmpRelationMapperTest
+├── src/test/java/com/offblink/
+│   ├── lab01/{UserMapperTest, UserMapperAnnotationTest, EmpMapperTest, EmpMapperMpTest}.java
+│   └── chapter05/EmpRelationMapperTest.java
 └── docs/                                          # 过程材料（报告草稿、会话回顾、排查演练、章节实测记录）
 ```
 
