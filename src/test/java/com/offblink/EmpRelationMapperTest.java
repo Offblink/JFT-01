@@ -18,14 +18,18 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * 第 5 章 关联映射（XML 方式）测试：一对一 / 多对一 / 一对多 / 多对多
+ * 第 5 章 关联映射测试：一对一 / 多对一 / 一对多 / 多对多 × XML / 注解
  * <p>
- * 数据来自两份建表脚本：{@code sql/ssm_emp.sql}（员工 4 人）+ {@code sql/dept_skill.sql}（部门/技能/中间表）：
- * <pre>
- *   emp_id 1 张伟 研发部(10)   emp_id 2 李娜 研发部(10)
- *   emp_id 3 王强 市场部(20)   emp_id 4 赵敏 人事部(30) —— 故意一项技能都没有
- * </pre>
- * 用例全部只读：关联查询不该顺手改库，所以不做造数/清理，跑多少次结果都一样。
+ * 由老师 {@code chapter05.rar → chapter05test/Chapter05Test.java} 的 9 个用例适配而来
+ * （方法名一一对应），改动三处：
+ * <ol>
+ *   <li>数据换成本项目种子：员工 1 张伟 / 2 李娜 / 3 王强 / 4 赵敏；部门 10 研发部 / 20 市场部 / 30 人事部；</li>
+ *   <li>老师用自建 {@code Resources.getResourceAsStream("chapter05/mybatis-config.xml")}，
+ *       本项目统一走 {@link MyBatisUtil}（全项目共用一个工厂）；</li>
+ *   <li>老师只打印不断言，这里补上断言 —— 打印给人看，断言给回归看。</li>
+ * </ol>
+ * 数据来自 {@code sql/ssm_emp.sql} + {@code sql/dept_skill.sql}：张伟(1) 会 Java+MySQL，李娜(2) 会 Vue，
+ * 王强(3) 会 Axure，赵敏(4) 一项技能都没有。用例全部只读，跑多少次结果都一样。
  */
 public class EmpRelationMapperTest {
 
@@ -45,17 +49,15 @@ public class EmpRelationMapperTest {
         session.close();
     }
 
-    /**
-     * 一对一：查一个员工，带出他的部门（一条 LEFT JOIN + &lt;association&gt; 嵌套结果）
-     */
+    /* ==================== 一对一 ==================== */
+
     @Test
     public void testOne2oneByXml() {
-        System.out.println("========== 一对一（XML 方式）==========");
+        System.out.println("========== 一对一（XML方式）==========");
         System.out.println("知识点：<association> + javaType + 嵌套结果映射，SQL 只有 1 条");
 
         Emp emp = empMapper.one2oneByXml(1);
         assertNotNull(emp);
-        // 关联对象 deptInfo 是整行部门数据；Emp.dept 那串文字是实验一遗留的文本列，两者都在
         assertNotNull("deptInfo 为空 → 检查外键别名 emp_dept_id 与 d.dept_id 有没有撞车", emp.getDeptInfo());
         assertEquals("研发部", emp.getDeptInfo().getDeptName());
         assertEquals(Integer.valueOf(10), emp.getDeptInfo().getDeptId());
@@ -66,31 +68,60 @@ public class EmpRelationMapperTest {
         System.out.println("员工表上的外键 deptId = " + emp.getDeptId() + "（与部门对象的 deptId 同值，没被覆盖）");
     }
 
-    /**
-     * 多对一：一次查一批员工，每人各带一个部门对象（复用同一份 resultMap，只是没有 WHERE）
-     */
+    @Test
+    public void testOne2oneByAnn() {
+        System.out.println("========== 一对一（注解方式）==========");
+        System.out.println("知识点：@Results + @One(select = ...) 嵌套 select，访问 getDeptInfo() 才发第二条 SQL");
+
+        Emp emp = empMapper.one2oneByAnn(2);
+        assertNotNull(emp);
+        assertEquals("李娜", emp.getEmpName());
+        assertNotNull("deptInfo 为空 → 检查 @One 的 select 是不是接口全限定名", emp.getDeptInfo());
+        assertEquals("研发部", emp.getDeptInfo().getDeptName());
+
+        System.out.println("员工：" + emp.getEmpName() + "（编号 " + emp.getEmpId() + "）");
+        System.out.println("部门：" + emp.getDeptInfo().getDeptName() + "（编号 " + emp.getDeptInfo().getDeptId()
+                + "，地点 " + emp.getDeptInfo().getLoc() + "）");
+    }
+
+    /* ==================== 多对一 ==================== */
+
     @Test
     public void testMany2oneByXml() {
-        System.out.println("========== 多对一（XML 方式）==========");
+        System.out.println("========== 多对一（XML方式）==========");
         System.out.println("知识点：一条 JOIN 查全部 + resultMap 复用 association");
 
         List<Emp> emps = empMapper.many2oneByXml();
         assertEquals(4, emps.size());
         System.out.println("员工总数：" + emps.size());
         for (Emp e : emps) {
-            // "多"的一侧：一批员工各自指向"一"的一侧（同一个部门对象内容会被查成多份，值相同）
+            // "多"的一侧：一批员工各自指向"一"的一侧
             System.out.println("  " + e.getEmpId() + " - " + e.getEmpName() + " -> "
                     + (e.getDeptInfo() != null ? e.getDeptInfo().getDeptName() : "无部门"));
         }
         assertNotNull(emps.get(0).getDeptInfo());
     }
 
-    /**
-     * 一对多：查一个部门，带出它下面的所有员工（&lt;collection&gt; + ofType，主键必须 &lt;id&gt;）
-     */
+    @Test
+    public void testMany2oneByAnn() {
+        System.out.println("========== 多对一（注解方式）==========");
+        System.out.println("知识点：一条主查询 + @One 逐条发子查询 → 4 个员工就是 1+4 条 SQL（N+1 现场）");
+
+        List<Emp> emps = empMapper.many2oneByAnn();
+        assertEquals(4, emps.size());
+        System.out.println("员工总数：" + emps.size());
+        for (Emp e : emps) {
+            System.out.println("  " + e.getEmpId() + " - " + e.getEmpName() + " -> "
+                    + (e.getDeptInfo() != null ? e.getDeptInfo().getDeptName() : "无部门"));
+        }
+        assertNotNull(emps.get(1).getDeptInfo());
+    }
+
+    /* ==================== 一对多 ==================== */
+
     @Test
     public void testOne2manyByXml() {
-        System.out.println("========== 一对多（XML 方式）==========");
+        System.out.println("========== 一对多（XML方式）==========");
         System.out.println("知识点：<collection> + ofType 指定元素类型 + 主键归并");
 
         Dept dept = deptMapper.one2manyByXml(10);
@@ -107,12 +138,29 @@ public class EmpRelationMapperTest {
         }
     }
 
-    /**
-     * 多对多：查一个员工 + 他的技能集合（两次 JOIN 穿过中间表）；顺带看不掌握任何技能的人长什么样
-     */
+    @Test
+    public void testOne2manyByAnn() {
+        System.out.println("========== 一对多（注解方式）==========");
+        System.out.println("知识点：@Results + @Many(select = ...) 嵌套 select");
+
+        Dept dept = deptMapper.one2manyByAnn(20);
+        assertNotNull(dept);
+        assertEquals("市场部", dept.getDeptName());
+        assertNotNull(dept.getEmps());
+        assertEquals(1, dept.getEmps().size());
+
+        System.out.println("部门：" + dept.getDeptName() + "（编号 " + dept.getDeptId() + "，地点 " + dept.getLoc() + "）");
+        System.out.println("员工数量：" + dept.getEmps().size());
+        for (Emp e : dept.getEmps()) {
+            System.out.println("  - " + e.getEmpName() + "（" + e.getPost() + "）");
+        }
+    }
+
+    /* ==================== 多对多 ==================== */
+
     @Test
     public void testMany2manyByXml() {
-        System.out.println("========== 多对多（XML 方式）==========");
+        System.out.println("========== 多对多（XML方式）==========");
         System.out.println("知识点：中间表 employer_skill + 两次 LEFT JOIN + <collection> + DISTINCT");
 
         Emp emp = empMapper.many2manyByXml(1);
@@ -136,5 +184,59 @@ public class EmpRelationMapperTest {
             assertNotNull("LEFT JOIN 产生了全 null 的技能对象（见 XML 注释的实测记录）", s.getId());
         }
         assertTrue(noSkill.getSkills().isEmpty());
+    }
+
+    @Test
+    public void testMany2manyByAnn() {
+        System.out.println("========== 多对多（注解方式）==========");
+        System.out.println("知识点：@Many(select = ...) 调用另一个查询方法（中间表查询被抽成独立方法）");
+
+        Emp emp = empMapper.many2manyByAnn(2);
+        assertNotNull(emp);
+        assertEquals("李娜", emp.getEmpName());
+        assertNotNull(emp.getSkills());
+        assertEquals(1, emp.getSkills().size());
+        assertEquals("Vue", emp.getSkills().get(0).getName());
+
+        System.out.println("员工：" + emp.getEmpName() + "（编号 " + emp.getEmpId() + "）");
+        System.out.println("技能数量：" + emp.getSkills().size());
+        for (Skill s : emp.getSkills()) {
+            System.out.println("  - " + s.getName() + "：" + s.getDescription());
+        }
+    }
+
+    /* ==================== XML vs 注解 对照（专项实验的自查项） ==================== */
+
+    /**
+     * 专项实验的交付自查：同一个业务查询，XML 与注解两套实现的结果必须完全一致。
+     * 不一致就说明某一边的主键标签、列名别名或 select 路径写错了。
+     * 另外：注解版是嵌套 select，日志里能看到多出来的那条子查询（N+1），XML 版只有 1 条。
+     */
+    @Test
+    public void testComparison() {
+        System.out.println("========== XML vs 注解 方式对比 ==========");
+
+        System.out.println("\n--- 一对一 / 多对一 ---");
+        Emp xml = empMapper.one2oneByXml(1);
+        Emp ann = empMapper.one2oneByAnn(1);
+        System.out.println("XML: 员工=" + xml.getEmpName() + ", 部门=" + xml.getDeptInfo().getDeptName());
+        System.out.println("Ann: 员工=" + ann.getEmpName() + ", 部门=" + ann.getDeptInfo().getDeptName());
+        assertEquals(xml.getEmpName(), ann.getEmpName());
+        assertEquals(xml.getDeptInfo().getDeptName(), ann.getDeptInfo().getDeptName());
+
+        System.out.println("\n--- 一对多 ---");
+        Dept deptXml = deptMapper.one2manyByXml(10);
+        Dept deptAnn = deptMapper.one2manyByAnn(10);
+        System.out.println("XML: " + deptXml.getDeptName() + " 员工数=" + deptXml.getEmps().size());
+        System.out.println("Ann: " + deptAnn.getDeptName() + " 员工数=" + deptAnn.getEmps().size());
+        assertEquals(deptXml.getDeptName(), deptAnn.getDeptName());
+        assertEquals(deptXml.getEmps().size(), deptAnn.getEmps().size());
+
+        System.out.println("\n--- 多对多 ---");
+        Emp m2mXml = empMapper.many2manyByXml(1);
+        Emp m2mAnn = empMapper.many2manyByAnn(1);
+        System.out.println("XML: " + m2mXml.getEmpName() + " 技能数=" + m2mXml.getSkills().size());
+        System.out.println("Ann: " + m2mAnn.getEmpName() + " 技能数=" + m2mAnn.getSkills().size());
+        assertEquals(m2mXml.getSkills().size(), m2mAnn.getSkills().size());
     }
 }

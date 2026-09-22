@@ -13,6 +13,15 @@
         <!-- SQL 日志走 SLF4J 门面（实际由 Logback 实现） -->
         <setting name="logImpl" value="SLF4J"/>
         <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!--
+            第 5 章注解版（@One/@Many 嵌套 select）需要这两项，老师 chapter05 的 mybatis-config.xml 里也有：
+            lazyLoadingEnabled=true      —— 关联对象改成"用到才查"（默认 false 时，一取主对象就顺手把子查询发掉）
+            aggressiveLazyLoading=false  —— 只加载"你真正访问的那个属性"，而不是整个对象的所有延迟属性。
+                                            两个都开着（true/true）时，取 emp.getEmpName() 都会连带把 deptInfo 查出来
+            XML 的嵌套结果（<association>/<collection> 内联列映射）不受影响：它本来就只有一条 SQL，没有延迟加载可言
+        -->
+        <setting name="lazyLoadingEnabled" value="true"/>
+        <setting name="aggressiveLazyLoading" value="false"/>
     </settings>
 
     <!-- 实体类别名：映射文件中直接写 User 即可 -->
