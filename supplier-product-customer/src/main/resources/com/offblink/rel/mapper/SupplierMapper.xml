@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 与接口 com.offblink.rel.mapper.SupplierMapper 同包同名 -->
+<mapper namespace="com.offblink.rel.mapper.SupplierMapper">
+
+    <!--
+        ==================== resultMap：供应商 + 商品 + 客户（功能②） ====================
+        与功能① 的关键区别：这里两个集合来自两张不同的表——
+          · products   直接查 product（外键 supplier_id 就在商品表上）；
+          · customers  必须穿过 after_sale 中间表（客户:供应商 = m:n，关系"售后"）。
+        若改用一条 join 把两组子行一起查回来，商品行和售后行会做笛卡尔积
+        （2 商品 × 2 售后 = 4 行冗余），所以这里换成嵌套 select：
+        主查询 1 条，column="id" 把供应商主键传给两条子查询，各自干净地各查各的表。
+        代价就是常说的 N+1（本例 1 主 + 2 子 = 3 条 SQL），数据量大时才需要回头改成 join。
+    -->
+    <resultMap id="supplierDetailMap" type="Supplier">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="address" property="address"/>
+
+        <!-- 嵌套 select：select 是被引语句的短 id（同一命名空间内），column 是传给它的列 -->
+        <collection property="products" ofType="Product"
+                    select="findProductsBySupplierId" column="id"/>
+        <collection property="customers" ofType="Customer"
+                    select="findCustomersBySupplierId" column="id"/>
+    </resultMap>
+
+    <!-- ==================== 功能②主查询：通过供应商查询（XML 形式） ==================== -->
+    <select id="findDetailBySupplierId" parameterType="int" resultMap="supplierDetailMap">
+        SELECT id, name, phone, address
+        FROM supplier
+        WHERE id = #{supplierId}
+    </select>
+
+    <!-- 子查询 1/2：该供应商名下的商品（1:n，外键在商品侧） -->
+    <select id="findProductsBySupplierId" parameterType="int" resultType="Product">
+        SELECT id, name, price, spec, supplier_id
+        FROM product
+        WHERE supplier_id = #{supplierId}
+        ORDER BY id
+    </select>
+
+    <!--
+        子查询 2/2：与该供应商有售后关系的客户（m:n，穿过 after_sale 中间表）。
+        不加 DISTINCT 也不会重复：中间表 (customer_id, supplier_id) 有唯一键，同一对只登记一次。
+        ORDER BY 只为断言的集合顺序稳定，与语义无关。
+    -->
+    <select id="findCustomersBySupplierId" parameterType="int" resultType="Customer">
+        SELECT c.id, c.name, c.phone, c.product_id
+        FROM customer c
+                 JOIN after_sale a ON a.customer_id = c.id
+        WHERE a.supplier_id = #{supplierId}
+        ORDER BY c.id
+    </select>
+
+</mapper>

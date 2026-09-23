@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<!-- 三实体关系练习的 MyBatis 配置：一个包里同时注册 XML 形式与注解 形式的接口 -->
+<configuration>
+
+    <properties resource="db.properties"/>
+
+    <settings>
+        <!-- SQL 日志走 SLF4J 门面（实际由 Logback 实现），Mapper 包 DEBUG 出 Preparing/Parameters/Total -->
+        <setting name="logImpl" value="SLF4J"/>
+        <!-- customer.product_id / product.supplier_id → productId / supplierId 自动映射 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!--
+            lazyLoadingEnabled 保持默认 false（立即加载）：两个功能的嵌套子查询都在主查询时一并发出，
+            测试在 session 关闭后也能安全读 supplier/products/customers。
+            本练习不演示懒加载；要开的话 javassist 外部库得先离线入库（见 pom 里的排除说明）。
+        -->
+    </settings>
+
+    <!-- 实体类别名：resultMap / resultType 里直接写 Product、Supplier、Customer -->
+    <typeAliases>
+        <package name="com.offblink.rel.entity"/>
+    </typeAliases>
+
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="${jdbc.driver}"/>
+                <property name="url" value="${jdbc.url}"/>
+                <property name="username" value="${jdbc.username}"/>
+                <property name="password" value="${jdbc.password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <!--
+        一条扫包注册整个 mapper 包（与根项目同款做法）：
+        · ProductMapper / SupplierMapper —— XML 形式：同包同名 XML 放在
+          resources/com/offblink/rel/mapper/ 下，扫包按"接口全限定名 → 同名资源"找到；
+        · ProductMapperAnnotation / SupplierMapperAnnotation —— 注解 形式：没有 XML，
+          扫包找不到资源就当纯注解接口解析。
+        挪 XML 时必须保持"与接口同包同名"，否则运行期 Invalid bound statement（编译期不报错）。
+    -->
+    <mappers>
+        <package name="com.offblink.rel.mapper"/>
+    </mappers>
+
+</configuration>

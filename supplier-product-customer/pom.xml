@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 独立练习：三种实体（供应商/商品/客户）的关系查询，不挂在根项目 war 下，
+         自己一个 artifact，`cd supplier-product-customer && mvn -o clean test` 单独构建 -->
+    <groupId>com.offblink</groupId>
+    <artifactId>supplier-product-customer</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <name>supplier-product-customer</name>
+    <packaging>jar</packaging>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!-- 纯 MyBatis（本练习只做关系映射，不需要根项目的 MyBatis-Plus BaseMapper） -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.5.13</version>
+            <!--
+                下面几条排除都是为了 mvn -o（离线）能解析 + 日志实现唯一，逐条有据：
+                1) ognl —— 已内置进 mybatis jar（org.apache.ibatis.ognl 包，unzip 实测 148 个类），
+                   本机离线仓库没有独立的 ognl 目录，不排掉会解析失败；
+                2) javassist —— 外部 javassist 库本机离线仓库没有；本练习 lazyLoadingEnabled 保持默认
+                   false（立即加载），用不到 javassist 的懒加载代理工厂；
+                3) slf4j-api —— mybatis 声明 2.0.6，logback-classic 1.2.13 带的是 1.7.x，
+                   掉进同一个 classpath 就是"多绑定/NOP"问题，统一由 logback 提供 1.7；
+                4) reload4j / log4j-api / commons-logging / cglib —— mybatis 的日志与代理解析的
+                   可选传递依赖，本项目日志栈唯一走 SLF4J + Logback（与根项目一致）。
+            -->
+            <exclusions>
+                <exclusion>
+                    <groupId>ognl</groupId>
+                    <artifactId>ognl</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.javassist</groupId>
+                    <artifactId>javassist</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>ch.qos.reload4j</groupId>
+                    <artifactId>reload4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>cglib</groupId>
+                    <artifactId>cglib</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- MySQL 驱动（与根项目同版本，本机离线仓库已有） -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>8.0.33</version>
+        </dependency>
+
+        <!-- JUnit 4（课程课件测试类使用 org.junit.Test） -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- SLF4J 门面 + Logback 实现（与根项目一致，SQL 日志落盘 logs/mybatis.log） -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.13</version>
+        </dependency>
+    </dependencies>
+</project>

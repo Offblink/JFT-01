@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 与接口 com.offblink.rel.mapper.ProductMapper 同包同名：扫包注册时按全限定名找到本文件 -->
+<mapper namespace="com.offblink.rel.mapper.ProductMapper">
+
+    <!--
+        ==================== resultMap：商品 + 供应商 + 客户（功能①） ====================
+        三种映射标签一次看全，判定口诀只看"属性是什么形状"：
+          · 一个对象（供应商） → <association>，javaType 写这个对象的类型；
+          · 一个集合（客户）   → <collection>，ofType 写集合元素的类型。
+        列全部来自下面那条 join，所以前缀 pid/sid/cid 分别喂给三个对象，
+        <id> 写对了 join 返回的多行才会归并成"一个商品 + N 个客户"而不是 N 个商品。
+    -->
+    <resultMap id="productDetailMap" type="Product">
+        <id column="pid" property="id"/>
+        <result column="pname" property="name"/>
+        <result column="price" property="price"/>
+        <result column="spec" property="spec"/>
+        <result column="psupplier_id" property="supplierId"/>
+
+        <!-- 多对一：每个商品挂一个供应商对象 -->
+        <association property="supplier" javaType="Supplier">
+            <id column="sid" property="id"/>
+            <result column="sname" property="name"/>
+            <result column="sphone" property="phone"/>
+            <result column="saddress" property="address"/>
+        </association>
+
+        <!-- 一对多：每个商品挂一批客户 -->
+        <collection property="customers" ofType="Customer">
+            <id column="cid" property="id"/>
+            <result column="cname" property="name"/>
+            <result column="cphone" property="phone"/>
+            <result column="cproduct_id" property="productId"/>
+        </collection>
+    </resultMap>
+
+    <!--
+        ==================== 功能①：通过商品查询客户和供应商（XML 形式） ====================
+        一条语句出全部结果：
+          · product JOIN supplier —— 供应商侧用内连（supplier_id 是 NOT NULL 外键，供应商必在）；
+          · LEFT JOIN customer —— 客户侧用左连：商品 5 FreeBuds 没有任何客户时，
+            这一行仍然返回（cid/cname 全 null），映射层跳过全 null 的子对象，
+            customers 得到空集合 []，而不是整条查询落空。
+        这就是 XML 形式相对注解形式的优势：一条 SQL、没有 N+1；
+        注解 形式（ProductMapperAnnotation）同一条业务写成了嵌套 select。
+    -->
+    <select id="findDetailByProductId" parameterType="int" resultMap="productDetailMap">
+        SELECT p.id          AS pid,
+               p.name        AS pname,
+               p.price       AS price,
+               p.spec        AS spec,
+               p.supplier_id AS psupplier_id,
+               s.id          AS sid,
+               s.name        AS sname,
+               s.phone       AS sphone,
+               s.address     AS saddress,
+               c.id          AS cid,
+               c.name        AS cname,
+               c.phone       AS cphone,
+               c.product_id  AS cproduct_id
+        FROM product p
+                 JOIN supplier s ON s.id = p.supplier_id
+                 LEFT JOIN customer c ON c.product_id = p.id
+        WHERE p.id = #{productId}
+    </select>
+
+</mapper>
